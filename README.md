@@ -1,4 +1,5 @@
 # Basic Computer Emulator
+![screenshot](./screenshot.png)
 Emulate a simple computer architecture with GUI and CLI.
 ## Architecture
 ### Registers and Flags:
