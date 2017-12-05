@@ -1,0 +1,7 @@
+LDA 4
+ADD 5
+STA 6
+HLT
+0053
+FFE9
+0
