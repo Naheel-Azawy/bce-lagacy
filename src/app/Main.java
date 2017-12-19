@@ -3,6 +3,8 @@ package app;
 import java.awt.EventQueue;
 import java.util.Scanner;
 
+import javax.swing.UIManager;
+
 import computer.Computer;
 import computer.ComputerAbstract;
 import gui.MainFrame;
@@ -195,6 +197,7 @@ public class Main {
 	public void startGui() {
 		EventQueue.invokeLater(() -> {
 			try {
+				UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel");
 				new MainFrame(c).setVisible(true);
 			} catch (Exception e) {
 				e.printStackTrace();

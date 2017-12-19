@@ -105,8 +105,11 @@ public class MainFrame extends JFrame {
 			}
 		});
 		setTitle(Info.NAME);
-		setIconImage(Info.ICON);
 		setResizable(true);
+		try {
+			setIconImage(Info.ICON);
+		} catch (Exception ignored) {
+		}
 
 		final Btn open, save, saveAs, run, tick, hlt, thm, about;
 		final TxtF scaleF;
