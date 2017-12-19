@@ -106,10 +106,7 @@ public class MainFrame extends JFrame {
 		});
 		setTitle(Info.NAME);
 		setResizable(true);
-		try {
-			setIconImage(Info.ICON);
-		} catch (Exception ignored) {
-		}
+		//setIconImage(Info.ICON); // FIXME: this is causing some problems
 
 		final Btn open, save, saveAs, run, tick, hlt, thm, about;
 		final TxtF scaleF;
