@@ -18,8 +18,11 @@ import java.util.prefs.Preferences;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.Icon;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -60,14 +63,16 @@ public class MainFrame extends JFrame {
 	private static final Color LIGHT = new Color(0xE8E8E7);
 	private static final Color DARK = new Color(0x252A2C);
 	private static final Color DARKER = new Color(0x1E1E1E);
+	private static final String FONT_MONO = "Courier New";
+	private static final String FONT_NORMAL = "Arial";
 	private static final int TXT_SIZE = 18;
 	private static final int EDITOR_TXT_SIZE = 20;
 	private static final int W = 1500, H = 1000;
 	private static final String[] P_TYPES = { "Assembly", "Hexadecimal", "Decimal", "Binary" };
-	private static final int P_TYPE_ASM = 0, P_TYPE_HEX = 1, P_TYPE_DEC = 2, P_TYPE_BIN = 3;
 	private static final String KEY_SCALE = "scale";
 	private static final String KEY_LIGHT = "is_light";
-	private static final int MEM_LEN = 25;
+	private static final int MEM_LEN = 20;
+	private static final int MEM_LINES = MEM_LEN + 5;
 
 	private float scale = 1f;
 	private int w, h;
@@ -108,8 +113,8 @@ public class MainFrame extends JFrame {
 		setResizable(true);
 		//setIconImage(Info.ICON); // FIXME: this is causing some problems
 
-		final Btn open, save, saveAs, run, tick, hlt, thm, about;
-		final TxtF scaleF;
+		final Btn open, save, saveAs, run, tick, hlt, clr, thm, about;
+		final TxtF scaleF, freqF, freqAvgF;
 
 		JPanel p = new JPanel();
 		p.setLayout(new BorderLayout());
@@ -125,6 +130,11 @@ public class MainFrame extends JFrame {
 		topL.add(run = new Btn("Run"));
 		topL.add(tick = new Btn("Tick"));
 		topL.add(hlt = new Btn("Halt"));
+		topL.add(clr = new Btn("Clear"));
+		topR.add(new Lbl("Avg Freq (Hz): "));
+		topR.add(freqAvgF = new TxtF(getFreq(), 4));
+		topR.add(new Lbl("Freq (Hz): "));
+		topR.add(freqF = new TxtF(getFreq(), 4));
 		topR.add(new Lbl("Scaling: "));
 		topR.add(scaleF = new TxtF(String.valueOf(scale), 3));
 		topR.add(thm = new Btn("Switch theme"));
@@ -138,6 +148,7 @@ public class MainFrame extends JFrame {
 			topL.setBackground(bgColor2);
 			topR.setBackground(bgColor2);
 		});
+		freqAvgF.setEditable(false);
 
 		open.addActionListener(e -> {
 			try {
@@ -156,12 +167,18 @@ public class MainFrame extends JFrame {
 		saveAs.addActionListener(e -> saveProgram(null));
 		run.addActionListener(e -> {
 			if (loadProgram(t, null)) {
+				setFreq(freqF.getText());
 				c.clearReg();
 				c.startAsync();
 			}
 		});
 		tick.addActionListener(e -> c.tickAsync());
 		hlt.addActionListener(e -> c.stop());
+		clr.addActionListener(e -> {
+			c.stop();
+			c.clear();
+			logger.clear();
+		});
 		thm.addActionListener(e -> this.toggleTheme());
 		scaleF.addActionListener(e -> {
 			try {
@@ -170,8 +187,7 @@ public class MainFrame extends JFrame {
 			} catch (Exception ignored) {
 			}
 		});
-		about.addActionListener(
-				e -> JOptionPane.showMessageDialog(MainFrame.this, Info.ABOUT, "About", JOptionPane.PLAIN_MESSAGE));
+		about.addActionListener(e -> about());
 
 		c.connectOnUpdate((_S, _M, _AR, _PC, _DR, _AC, _IR, _TR, _SC, _E) -> {
 			S = _S;
@@ -185,9 +201,12 @@ public class MainFrame extends JFrame {
 			SC = _SC;
 			E = _E;
 			t.setReg(Format.registers(S, AR, PC, DR, AC, IR, TR, SC, E));
-			t.setMem(Format.memory(MEM_LEN, mStart, M, PC));
+			t.setMem(Format.memory(MEM_LINES, mStart, M, PC));
 			if (!_S)
 				Utils.runAfter(() -> t.logS.setValue(t.logS.getMaximum()), 200);
+			if (c.getAvgFrequency() > 0) {
+				freqAvgF.setText(String.format("%.2f", c.getAvgFrequency()));
+			}
 		});
 		c.runListeners();
 		t.setSrc(c.getSource());
@@ -196,6 +215,24 @@ public class MainFrame extends JFrame {
 		setTheme(isLight);
 		setLocationRelativeTo(null);
 		Utils.runAfter(() -> t.src.tp.requestFocus(), 500);
+	}
+
+	public void about() {
+		JOptionPane.showMessageDialog(this, Info.ABOUT, "About", JOptionPane.PLAIN_MESSAGE, new ImageIcon(Info.ICON));
+	}
+
+	private String getFreq() {
+		int f = c.getFrequency();
+		return f < 0 ? "---" : Integer.toString(f);
+	}
+
+	private void setFreq(String s) {
+		try {
+			int f = Integer.parseInt(s);
+			c.setFrequency(f);
+		} catch (Exception e) {
+			c.setFrequency(-1);
+		}
 	}
 
 	private void saveProgram(String path) {
@@ -216,17 +253,7 @@ public class MainFrame extends JFrame {
 			return false;
 		}
 		String src = path == null ? t.getSrc() : Utils.readFile(path);
-		switch (pType.getSelectedIndex()) {
-		case P_TYPE_ASM:
-			return c.loadProgram(src, path);
-		case P_TYPE_HEX:
-			return c.loadHexProgram(src, path);
-		case P_TYPE_DEC:
-			return c.loadDecProgram(src, path);
-		case P_TYPE_BIN:
-			return c.loadBinProgram(src, path);
-		}
-		return false;
+		return c.loadProgram(pType.getSelectedIndex(), src, path);
 	}
 
 	public void toggleTheme() {
@@ -260,6 +287,7 @@ public class MainFrame extends JFrame {
 
 		JSplitPane p, p2, p3;
 		Txt src, reg, mem, log;
+		TxtF mStartTF;
 		JScrollBar logS;
 
 		public Txts() {
@@ -294,18 +322,20 @@ public class MainFrame extends JFrame {
 			addTheme(() -> {
 				pType.setBackground(bgColor);
 				pType.setForeground(txtColor);
-				pType.setFont(new Font("Arial", Font.PLAIN, txtSize));
+				pType.setFont(new Font(FONT_NORMAL, Font.PLAIN, txtSize));
 			});
 			src.addTR(new Btn("Load", e -> loadProgram(this, null)));
 			reg.addTR(new Btn("Clear", e -> c.clearReg()));
 			mem.addTR(new Lbl("Start: "));
-			mem.addTR(new TxtF("0", 4, e -> {
+			mem.addTR(mStartTF = new TxtF("0", 4, e -> {
 				try {
 					mStart = Integer.parseInt(((TxtF) e.getSource()).getText());
-					setMem(Format.memory(MEM_LEN, mStart, M, PC));
+					setMem(mStart);
 				} catch (Exception ignored) {
 				}
 			}));
+			mem.addTR(new Btn("↓", e -> setMem(++mStart)));
+			mem.addTR(new Btn("↑", e -> setMem(--mStart)));
 			mem.addTR(new Btn("Clear", e -> c.clearMem()));
 			log.addTR(new Btn("Clear", e -> logger.clear()));
 			log.addTR(new Btn("Save", e -> {
@@ -329,7 +359,10 @@ public class MainFrame extends JFrame {
 						d.insertString(d.getLength(), l + "\n", l.startsWith("Error:") ? red : null);
 					} catch (Exception ignored) {
 					}
-					logS.setValue(logS.getMaximum());
+					try {
+						logS.setValue(logS.getMaximum());
+					} catch (Exception ignored) {
+					}
 				}
 			});
 
@@ -354,6 +387,16 @@ public class MainFrame extends JFrame {
 
 		public void setMem(String txt) {
 			mem.setText(txt);
+		}
+
+		public void setMem(int mStart) {
+			if (mStart < 0)
+				mStart = 0;
+			else if (mStart > M.length - MEM_LEN - 1)
+				mStart = M.length - MEM_LEN - 1;
+			MainFrame.this.mStart = mStart;
+			mStartTF.setText(String.valueOf(mStart));
+			setMem(Format.memory(MEM_LINES, mStart, M, PC));
 		}
 
 		@Override
@@ -414,9 +457,9 @@ public class MainFrame extends JFrame {
 				tp.setForeground(txtColor);
 			}
 			tp.setCaretColor(txtColor);
-			tp.setFont(new Font("Courier New", Font.PLAIN, editorTxtSize));
+			tp.setFont(new Font(FONT_MONO, Font.PLAIN, editorTxtSize));
 			tl.setForeground(txtColor);
-			tl.setFont(new Font("Arial", Font.PLAIN, txtSize));
+			tl.setFont(new Font(FONT_NORMAL, Font.PLAIN, txtSize));
 		}
 
 		public void setText(String txt) {
@@ -583,7 +626,7 @@ public class MainFrame extends JFrame {
 		public void theme() {
 			setBackground(bgColor);
 			setForeground(Color.GRAY);
-			setFont(new Font("monospaced", Font.PLAIN, txtSize));
+			setFont(new Font(FONT_MONO, Font.PLAIN, editorTxtSize));
 		}
 	}
 
@@ -607,7 +650,7 @@ public class MainFrame extends JFrame {
 			setBackground(bgColor);
 			setForeground(txtColor);
 			setCaretColor(txtColor);
-			setFont(new Font("Arial", Font.PLAIN, txtSize));
+			setFont(new Font(FONT_NORMAL, Font.PLAIN, txtSize));
 		}
 
 	}
@@ -629,7 +672,7 @@ public class MainFrame extends JFrame {
 
 		@Override
 		public void theme() {
-			setFont(new Font("Arial", Font.PLAIN, txtSize));
+			setFont(new Font(FONT_NORMAL, Font.PLAIN, txtSize));
 			setBackground(bgColor);
 			setForeground(txtColor);
 		}
@@ -646,7 +689,7 @@ public class MainFrame extends JFrame {
 
 		@Override
 		public void theme() {
-			setFont(new Font("Arial", Font.PLAIN, txtSize));
+			setFont(new Font(FONT_NORMAL, Font.PLAIN, txtSize));
 			setForeground(txtColor);
 		}
 	}

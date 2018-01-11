@@ -57,13 +57,25 @@ public class Utils {
 		}
 	}
 
-	public static void runAfter(Runnable r, long millis) {
-		new Timer().schedule(new TimerTask() {
+	public static Timer runAfter(Runnable r, long millis) {
+		Timer t = new Timer();
+		t.schedule(new TimerTask() {
 			@Override
 			public void run() {
 				r.run();
 			}
 		}, millis);
+		return t;
+	}
+
+	public static void sleep(long millis) {
+		if (millis < 0)
+			return;
+		try {
+			Thread.sleep(millis);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
 	}
 
 	public static short[] parseShortArray(String[] arr) {

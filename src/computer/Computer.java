@@ -1,6 +1,7 @@
 package computer;
 
 import utils.Logger;
+import utils.Utils;
 
 public class Computer extends ComputerAbstract {
 
@@ -19,10 +20,9 @@ public class Computer extends ComputerAbstract {
     public Computer(Logger logger) {
         super(logger);
         setupDataUnit();
-        M = new Memory(MEM_SIZE);
+        M = new Memory(4096);
         M.setAR(AR);
-        setSC((byte) 0);
-        S = true;
+        clear();
     }
 
     private void setupDataUnit() {
@@ -279,9 +279,10 @@ public class Computer extends ComputerAbstract {
 
     @Override
     public void start() {
+        if (S)
+            return;
         S = true;
-        while (S)
-            tick();
+        loop();
     }
 
     @Override
@@ -324,7 +325,7 @@ public class Computer extends ComputerAbstract {
         TR.clear();
         clrSC();
         E = false;
-        S = true;
+        S = false;
         runListeners();
     }
 
@@ -344,7 +345,7 @@ public class Computer extends ComputerAbstract {
         TR.clear();
         clrSC();
         E = false;
-        S = true;
+        S = false;
         runListeners();
     }
 

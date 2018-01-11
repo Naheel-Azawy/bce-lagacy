@@ -31,10 +31,15 @@ public class Main {
 	short AR, PC, DR, AC, IR, TR;
 	byte SC;
 	boolean S, E;
+	int memSize;
 	int lines = 10;
 	int showMem = -1;
 
 	public Main(String[] args) {
+		logger = new Logger();
+		c = new Computer(logger);
+		memSize = c.getMemory().length;
+
 		String filePath = null;
 		char fileType = 'a';
 		boolean gui = true;
@@ -63,9 +68,8 @@ public class Main {
 						gui = false;
 						q = true;
 						tick = false;
-						if (showMem < 0 || showMem >= ComputerAbstract.MEM_SIZE) {
-							System.err.println(
-									"Memory location should be between 0 and " + (ComputerAbstract.MEM_SIZE - 1));
+						if (showMem < 0 || showMem >= memSize) {
+							System.err.println("Memory location should be between 0 and " + (memSize - 1));
 							System.exit(1);
 						}
 					} catch (Exception e) {
@@ -96,8 +100,6 @@ public class Main {
 			}
 		}
 
-		logger = new Logger();
-		c = new Computer(logger);
 		c.connectOnUpdate((_S, _M, _AR, _PC, _DR, _AC, _IR, _TR, _SC, _E) -> {
 			S = _S;
 			M = _M;
@@ -110,21 +112,22 @@ public class Main {
 			SC = _SC;
 			E = _E;
 		});
-		if (filePath != null)
+		if (filePath != null) {
 			switch (fileType) {
 			case 'a':
-				c.loadProgramFromFile(filePath);
+				c.loadProgramFile(ComputerAbstract.TYPE_ASM, filePath);
 				break;
 			case 'd':
-				c.loadDecProgramFromFile(filePath);
+				c.loadProgramFile(ComputerAbstract.TYPE_DEC, filePath);
 				break;
 			case 'x':
-				c.loadHexProgramFromFile(filePath);
+				c.loadProgramFile(ComputerAbstract.TYPE_HEX, filePath);
 				break;
 			case 'b':
-				c.loadBinProgramFromFile(filePath);
+				c.loadProgramFile(ComputerAbstract.TYPE_BIN, filePath);
 				break;
 			}
+		}
 		if (gui) {
 			startGui();
 		} else {
@@ -188,7 +191,7 @@ public class Main {
 			System.out.print(
 					Format.all(logger, lines = Utils.getTerminalLines(), mStart, S, M, AR, PC, DR, AC, IR, TR, SC, E));
 		} catch (IndexOutOfBoundsException ie) {
-			int max = Computer.MEM_SIZE - lines + 4;
+			int max = memSize - lines + 4;
 			mStart = mStart > max ? max : 0;
 			displayState(mStart);
 		}

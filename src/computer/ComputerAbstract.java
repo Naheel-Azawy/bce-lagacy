@@ -9,8 +9,6 @@ import utils.Utils;
 
 public abstract class ComputerAbstract {
 
-    public static final int MEM_SIZE = 4096;
-
     public static final int TYPE_ASM = 0;
     public static final int TYPE_HEX = 1;
     public static final int TYPE_DEC = 2;
@@ -21,34 +19,44 @@ public abstract class ComputerAbstract {
     protected String src = "";
     protected String srcPath = null;
     protected int srcType = TYPE_ASM;
+    protected int period = 0;
+    private double avgFreq = 0;
 
     public ComputerAbstract(Logger logger) {
         this.logger = logger;
     }
 
-    public boolean loadProgram(String program) {
-        return loadProgram(program, null);
+    public boolean loadProgram(int type, String program, String path) {
+        if (type != -1)
+            srcType = type;
+        switch (srcType) {
+        case TYPE_ASM:
+            return loadAsmProgram(program, path);
+        case TYPE_HEX:
+            return loadHexProgram(program, path);
+        case TYPE_DEC:
+            return loadDecProgram(program, path);
+        case TYPE_BIN:
+            return loadBinProgram(program, path);
+        }
+        return false;
     }
 
-    public boolean loadBinProgram(String program) {
-        return loadBinProgram(program, null);
+    public boolean loadProgramSrc(int type, String program) {
+        return loadProgram(type, program, null);
     }
 
-    public boolean loadHexProgram(String program) {
-        return loadHexProgram(program, null);
+    public boolean loadProgramFile(int type, String path) {
+        return loadProgram(type, Utils.readFile(path), path);
     }
 
-    public boolean loadDecProgram(String program) {
-        return loadDecProgram(program, null);
-    }
-
-    public boolean loadProgram(String program, String path) {
+    private boolean loadAsmProgram(String program, String path) {
         srcType = TYPE_ASM;
         if (path != null) {
-            logger.log("Loaded program from \'" + path + '\'');
+            logger.log("Loaded Assembly program from \'" + path + '\'');
             srcPath = path;
         } else
-            logger.log("Loaded program");
+            logger.log("Loaded Assembly program");
         src = program;
         try {
             loadMemory(Assembler.assemble(program.split("\n")));
@@ -60,7 +68,7 @@ public abstract class ComputerAbstract {
         }
     }
 
-    public boolean loadBinProgram(String program, String path) {
+    private boolean loadBinProgram(String program, String path) {
         srcType = TYPE_BIN;
         if (path != null) {
             logger.log("Loaded binary program from \'" + path + '\'');
@@ -78,7 +86,7 @@ public abstract class ComputerAbstract {
         }
     }
 
-    public boolean loadHexProgram(String program, String path) {
+    private boolean loadHexProgram(String program, String path) {
         srcType = TYPE_HEX;
         if (path != null) {
             logger.log("Loaded hexadecimal program from \'" + path + '\'');
@@ -96,7 +104,7 @@ public abstract class ComputerAbstract {
         }
     }
 
-    public boolean loadDecProgram(String program, String path) {
+    private boolean loadDecProgram(String program, String path) {
         srcType = TYPE_DEC;
         if (path != null) {
             logger.log("Loaded decimal program from \'" + path + '\'');
@@ -114,50 +122,55 @@ public abstract class ComputerAbstract {
         }
     }
 
-    public void loadProgramFromFile(String path) {
-        loadProgram(Utils.readFile(path), path);
+    public String getSource() {
+        return src;
     }
 
-    public void loadBinProgramFromFile(String path) {
-        loadBinProgram(Utils.readFile(path));
+    public String getSourcePath() {
+        return srcPath;
     }
 
-    public void loadHexProgramFromFile(String path) {
-        loadHexProgram(Utils.readFile(path));
+    public int getSourceType() {
+        return srcType;
     }
-
-    public void loadDecProgramFromFile(String path) {
-        loadDecProgram(Utils.readFile(path));
-    }
-
-    public abstract void loadMemory(short[] in);
-
-    public abstract short[] getMemory();
-
-    public abstract void start();
 
     public void startAsync() {
         new Thread(this::start).start();
     }
 
-    public abstract void tick();
-
     public void tickAsync() {
         new Thread(this::tick).start();
     }
 
-    public abstract void stop();
+    protected void loop() {
+        long t;
+        double f;
+        while (isRunning()) {
+            t = System.currentTimeMillis();
+            tick();
+            Utils.sleep(period - (System.currentTimeMillis() - t));
+            if (avgFreq == 0) {
+                avgFreq = 1 / ((System.currentTimeMillis() - t) / 1000d);
+            } else {
+                f = 1 / ((System.currentTimeMillis() - t) / 1000d);
+                if (Double.isFinite(f))
+                    avgFreq = (avgFreq + f) / 2;
+            }
+        }
+    }
 
-    public abstract boolean isRunning();
+    public double getAvgFrequency() {
+        return avgFreq;
+    }
 
-    public abstract void clear();
+    public int getFrequency() {
+        return period <= 0 ? -1 : 1 / (period / 1000);
+    }
 
-    public abstract void clearMem();
-
-    public abstract void clearReg();
-
-    public Logger getLogger() {
-        return logger;
+    public void setFrequency(int f) {
+        period = f == 0 ? -1 : Math.round(1 / (f / 1000f));
+        if (period < 0)
+            period = -1;
     }
 
     public interface Listener {
@@ -170,18 +183,28 @@ public abstract class ComputerAbstract {
         runListeners();
     }
 
+    public Logger getLogger() {
+        return logger;
+    }
+
+    public abstract void start();
+
+    public abstract void tick();
+
+    public abstract void stop();
+
+    public abstract boolean isRunning();
+
+    public abstract void clear();
+
+    public abstract void loadMemory(short[] in);
+
+    public abstract short[] getMemory();
+
+    public abstract void clearMem();
+
+    public abstract void clearReg();
+
     public abstract void runListeners();
-
-    public String getSource() {
-        return src;
-    }
-
-    public String getSourcePath() {
-        return srcPath;
-    }
-
-    public int getSourceType() {
-        return srcType;
-    }
 
 }
