@@ -294,6 +294,8 @@ public class MainFrame extends JFrame {
 		TxtF mStartTF;
 		JScrollBar logS;
 
+		// TODO: add io
+
 		public Txts() {
 			p = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
 			p2 = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT);
@@ -406,7 +408,7 @@ public class MainFrame extends JFrame {
 		@Override
 		public void theme() {
 			p.setDividerLocation((int) (w * 0.45));
-			p2.setDividerLocation((int) (w * 0.45));
+			p2.setDividerLocation((int) (w * 0.4));
 			p3.setDividerLocation((int) (w * 0.65));
 		}
 

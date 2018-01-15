@@ -141,8 +141,10 @@ public class Main {
 				c.start();
 			if (showMem != -1)
 				System.out.println(M[showMem]);
-			else
+			else {
+				c.startEnable();
 				runEveryClock(!q);
+			}
 		}
 	}
 

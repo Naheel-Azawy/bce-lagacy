@@ -321,6 +321,11 @@ public class Computer extends ComputerAbstract {
     }
 
     @Override
+    public void startEnable() {
+        S = true;
+    }
+
+    @Override
     public void tick() {
         if (!S)
             return;

@@ -187,6 +187,8 @@ public abstract class ComputerAbstract {
         return logger;
     }
 
+    public abstract void startEnable();
+
     public abstract void start();
 
     public abstract void tick();
