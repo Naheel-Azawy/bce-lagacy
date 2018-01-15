@@ -28,9 +28,9 @@ public class Main {
 	ComputerAbstract c;
 	Logger logger;
 	short[] M;
-	short AR, PC, DR, AC, IR, TR;
+	short AR, PC, DR, AC, IR, TR, INPR, OUTR;
 	byte SC;
-	boolean S, E;
+	boolean S, E, R, IEN, FGI, FGO;
 	int memSize;
 	int lines = 10;
 	int showMem = -1;
@@ -100,7 +100,7 @@ public class Main {
 			}
 		}
 
-		c.connectOnUpdate((_S, _M, _AR, _PC, _DR, _AC, _IR, _TR, _SC, _E) -> {
+		c.connectOnUpdate((_S, _M, _AR, _PC, _DR, _AC, _IR, _TR, _SC, _E, _R, _IEN, _FGI, _FGO, _INPR, _OUTR) -> {
 			S = _S;
 			M = _M;
 			AR = _AR;
@@ -111,6 +111,12 @@ public class Main {
 			TR = _TR;
 			SC = _SC;
 			E = _E;
+			R = _R;
+			IEN = _IEN;
+			FGI = _FGI;
+			FGO = _FGO;
+			INPR = _INPR;
+			OUTR = _OUTR;
 		});
 		if (filePath != null) {
 			switch (fileType) {
@@ -188,8 +194,8 @@ public class Main {
 
 	private void displayState(int mStart) {
 		try {
-			System.out.print(
-					Format.all(logger, lines = Utils.getTerminalLines(), mStart, S, M, AR, PC, DR, AC, IR, TR, SC, E));
+			System.out.print(Format.all(logger, lines = Utils.getTerminalLines(), mStart, S, M, AR, PC, DR, AC, IR, TR,
+					SC, E, R, IEN, FGI, FGO, INPR, OUTR));
 		} catch (IndexOutOfBoundsException ie) {
 			int max = memSize - lines + 4;
 			mStart = mStart > max ? max : 0;

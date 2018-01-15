@@ -5,11 +5,14 @@ import utils.Logger;
 
 public class Format {
 
+    // TODO: fix registers formating
+
     private static final String WRD = "%2s %04d: 0x%04X %8d %-10s";
     private static final String REG = "%2s 0x%04X %8d";
     private static final String PNT = "->";
     private static final String NO_PNT = "  ";
-    private static final String[] REGS = new String[] { "AR", "PC", "DR", "AC", "IR", "TR", "SC", "E", "S" };
+    private static final String[] REGS = new String[] { "AR", "PC", "DR", "AC", "IR", "TR", "SC", "E", "S", "R", "IEN",
+            "FGI", "FGO", "INPR", "OUTR" };
 
     public static String memory(int lines, int mStart, short[] M, short PC) {
         int start = 0;
@@ -27,10 +30,11 @@ public class Format {
     }
 
     public static String registers(boolean S, short AR, short PC, short DR, short AC, short IR, short TR, byte SC,
-            boolean E) {
+            boolean E, boolean R, boolean IEN, boolean FGI, boolean FGO, short INPR, short OUTR) {
         String res = "   hex     decimal\n";
         res += "------------------\n";
-        short[] shorts = new short[] { AR, PC, DR, AC, IR, TR, SC, (short) (E ? 1 : 0), (short) (S ? 1 : 0) };
+        short[] shorts = new short[] { AR, PC, DR, AC, IR, TR, SC, (short) (E ? 1 : 0), (short) (S ? 1 : 0),
+                (short) (R ? 1 : 0), (short) (IEN ? 1 : 0), (short) (FGI ? 1 : 0), (short) (FGO ? 1 : 0), INPR, OUTR };
         for (int i = 0; i < REGS.length; ++i) {
             res += String.format(REG, REGS[i], shorts[i], shorts[i]);
             res += "\n";
@@ -39,12 +43,14 @@ public class Format {
     }
 
     public static String all(Logger logger, int lines, int mStart, boolean S, short[] M, short AR, short PC, short DR,
-            short AC, short IR, short TR, byte SC, boolean E) {
+            short AC, short IR, short TR, byte SC, boolean E, boolean R, boolean IEN, boolean FGI, boolean FGO,
+            short INPR, short OUTR) {
         int start = 0;
         String res = "   Memory                           | CPU Registers\n";
         res += "   addr  hex     decimal text       |    hex     decimal\n";
         res += "------------------------------------|-------------------\n";
-        short[] shorts = new short[] { AR, PC, DR, AC, IR, TR, SC, (short) (E ? 1 : 0), (short) (S ? 1 : 0) };
+        short[] shorts = new short[] { AR, PC, DR, AC, IR, TR, SC, (short) (E ? 1 : 0), (short) (S ? 1 : 0),
+                (short) (R ? 1 : 0), (short) (IEN ? 1 : 0), (short) (FGI ? 1 : 0), (short) (FGO ? 1 : 0), INPR, OUTR };
         int l;
         String p;
         int logI;

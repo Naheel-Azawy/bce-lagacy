@@ -35,8 +35,14 @@ public class Register {
         return (short) ((value >> from) & ~(-1 << (to - from + 1)));
     }
 
-    public void setBit(int bit, boolean to) {
-        value = (short) (to ? (value | 1 << bit) : (value & ~(1 << bit)));
+    public void setBit(int bit, boolean v) {
+        value = (short) (v ? (value | 1 << bit) : (value & ~(1 << bit)));
+    }
+
+    public void setBits(int from, int to, short v) {
+        short mask = (short) (~(-1 << from) | (-1 << to + 1));
+        v = (short) ((v << from) & ~mask);
+        value = (short) ((value & mask) | v);
     }
 
     public int getMaxValue() {

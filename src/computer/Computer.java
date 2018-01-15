@@ -1,20 +1,19 @@
 package computer;
 
 import utils.Logger;
-import utils.Utils;
 
 public class Computer extends ComputerAbstract {
 
     private Memory M;
-    private Register AR, PC, DR, AC, IR, TR;
+    private Register AR, PC, DR, AC, IR, TR, INPR, OUTR;
     private boolean E, S;
 
     private byte SC;
     private boolean T0, T1, T2, T3, T4, T5, T6;
     private boolean D0, D1, D2, D3, D4, D5, D6, D7;
     private boolean I;
-    private boolean R; // TODO: implement interrupt and io
-    private boolean r;
+    private boolean R, IEN, FGI, FGO;
+    private boolean r, p;
     private boolean B11, B10, B9, B8, B7, B6, B5, B4, B3, B2, B1, B0;
 
     public Computer(Logger logger) {
@@ -32,16 +31,18 @@ public class Computer extends ComputerAbstract {
         AC = new Register(16);
         IR = new Register(16);
         TR = new Register(16);
+        INPR = new Register(8);
+        OUTR = new Register(8);
     }
 
     private void controlUnitRun() {
+
         // Fetch
         if (!R && T0) {
             logger.log("R'T0: AR <- PC");
             AR.load(PC.getValue());
             incSC();
-        }
-        if (!R && T1) {
+        } else if (!R && T1) {
             logger.log("R'T1: IR <- M[AR], PC <- PC + 1");
             M.read(IR);
             PC.increment();
@@ -65,98 +66,9 @@ public class Computer extends ComputerAbstract {
             incSC();
         }
 
-        // Indirect
-        if (!D7 && I && T3) {
-            logger.log("D7'IT3: AR <- M[AR]");
-            M.read(AR);
-            incSC();
-        }
-        if (!D7 && !I && T3) {
-            logger.log("D7'IT3: NOOP");
-            incSC();
-        }
-
-        // Memory-Reference
-        // AND
-        if (D0 && T4) {
-            logger.log("D0T4: DR <- M[AR]");
-            M.read(DR);
-            incSC();
-        }
-        if (D0 && T5) {
-            logger.log("D0T5: AC <- AC ^ DR, SC <- 0");
-            AC.load((short) (AC.getValue() & DR.getValue()));
-            clrSC();
-        }
-        // ADD
-        if (D1 && T4) {
-            logger.log("D1T4: DR <- M[AR]");
-            M.read(DR);
-            incSC();
-        }
-        if (D1 && T5) {
-            logger.log("D1T5: AC <- AC + DR, E <- Cout, SC <- 0");
-            int res = AC.getValue() + DR.getValue();
-            AC.load((short) (res % AC.getMaxValue()));
-            E = (res & AC.getMaxValue()) != 0;
-            clrSC();
-        }
-        // LDA
-        if (D2 && T4) {
-            logger.log("D2T4: DR <- M[AR]");
-            M.read(DR);
-            incSC();
-        }
-        if (D2 && T5) {
-            logger.log("D2T4: AC <- DR, SC <- 0");
-            AC.load(DR.getValue());
-            clrSC();
-        }
-        // STA
-        if (D3 && T4) {
-            logger.log("D3T4: M[AR] <- AC, SC <- 0");
-            M.write(AC);
-            clrSC();
-        }
-        // BUN
-        if (D4 && T4) {
-            logger.log("D4T4: PC <- AR, SC <- 0");
-            PC.load(AR.getValue());
-            clrSC();
-        }
-        // BSA
-        if (D5 && T4) {
-            logger.log("D5T4: M[AR] <- PC, AR <- AR + 1");
-            M.write(PC);
-            AR.increment();
-            incSC();
-        }
-        if (D5 && T5) {
-            logger.log("D5T5: PC <- AR, SC <- 0");
-            PC.load(AR.getValue());
-            clrSC();
-        }
-        // ISZ
-        if (D6 && T4) {
-            logger.log("D6T4: DR <- M[AR]");
-            M.read(DR);
-            incSC();
-        } else if (D6 && T5) {
-            logger.log("D6T5: DR <- DR + 1");
-            DR.increment();
-            incSC();
-        } else if (D6 && T6) {
-            logger.log("D6T6: M[AR] <- DR, if (DR = 0) then (PC <- PC + 1), SC <- 0");
-            M.write(DR);
-            if (DR.getValue() == 0)
-                PC.increment();
-            clrSC();
-        }
-
         r = D7 && !I && T3;
-
-        // Register-Reference
-        if (r) {
+        p = D7 && I && T3;
+        if (r || p) {
             byte B = (byte) (Math.log(IR.bitsRange(0, 11)) / Math.log(2));
             B11 = B == 11;
             B10 = B == 10;
@@ -172,28 +84,130 @@ public class Computer extends ComputerAbstract {
             B0 = B == 0;
             clrSC();
         }
+
+        // Indirect
+        if (!D7 && I && T3) {
+            logger.log("D7'IT3: AR <- M[AR]");
+            M.read(AR);
+            incSC();
+        } else if (!D7 && !I && T3) {
+            logger.log("D7'IT3: NOOP");
+            incSC();
+        }
+
+        // Interrupt
+        else if (IEN && R && T0) {
+            logger.log("AR <- 0, TR <- PC");
+            AR.clear();
+            TR.load(PC.getValue());
+        } else if (IEN && R && T1) {
+            logger.log("M[AR] <- TR, PC <- 0");
+            M.write(TR);
+            PC.clear();
+        } else if (IEN && R && T2) {
+            logger.log("PC <- PC + 1, IEN <- 0, R <- 0, SC <- 0");
+            PC.increment();
+            IEN = false;
+            R = false;
+            clrSC();
+        }
+
+        // Memory-Reference
+        // AND
+        else if (D0 && T4) {
+            logger.log("D0T4: DR <- M[AR]");
+            M.read(DR);
+            incSC();
+        } else if (D0 && T5) {
+            logger.log("D0T5: AC <- AC ^ DR, SC <- 0");
+            AC.load((short) (AC.getValue() & DR.getValue()));
+            clrSC();
+        }
+        // ADD
+        if (D1 && T4) {
+            logger.log("D1T4: DR <- M[AR]");
+            M.read(DR);
+            incSC();
+        } else if (D1 && T5) {
+            logger.log("D1T5: AC <- AC + DR, E <- Cout, SC <- 0");
+            int res = AC.getValue() + DR.getValue();
+            AC.load((short) (res % AC.getMaxValue()));
+            E = (res & AC.getMaxValue()) != 0;
+            clrSC();
+        }
+        // LDA
+        else if (D2 && T4) {
+            logger.log("D2T4: DR <- M[AR]");
+            M.read(DR);
+            incSC();
+        } else if (D2 && T5) {
+            logger.log("D2T4: AC <- DR, SC <- 0");
+            AC.load(DR.getValue());
+            clrSC();
+        }
+        // STA
+        else if (D3 && T4) {
+            logger.log("D3T4: M[AR] <- AC, SC <- 0");
+            M.write(AC);
+            clrSC();
+        }
+        // BUN
+        else if (D4 && T4) {
+            logger.log("D4T4: PC <- AR, SC <- 0");
+            PC.load(AR.getValue());
+            clrSC();
+        }
+        // BSA
+        else if (D5 && T4) {
+            logger.log("D5T4: M[AR] <- PC, AR <- AR + 1");
+            M.write(PC);
+            AR.increment();
+            incSC();
+        } else if (D5 && T5) {
+            logger.log("D5T5: PC <- AR, SC <- 0");
+            PC.load(AR.getValue());
+            clrSC();
+        }
+        // ISZ
+        else if (D6 && T4) {
+            logger.log("D6T4: DR <- M[AR]");
+            M.read(DR);
+            incSC();
+        } else if (D6 && T5) {
+            logger.log("D6T5: DR <- DR + 1");
+            DR.increment();
+            incSC();
+        } else if (D6 && T6) {
+            logger.log("D6T6: M[AR] <- DR, if (DR = 0) then (PC <- PC + 1), SC <- 0");
+            M.write(DR);
+            if (DR.getValue() == 0)
+                PC.increment();
+            clrSC();
+        }
+
+        // Register-Reference
         // CLA
-        if (r && B11) {
+        else if (r && B11) {
             logger.log("D7I'T3B11: AC <- 0, SC <- 0");
             AC.clear();
         }
         // CLE
-        if (r && B10) {
+        else if (r && B10) {
             logger.log("D7I'T3B10: E <- 0, SC <- 0");
             E = false;
         }
         // CMA
-        if (r && B9) {
+        else if (r && B9) {
             logger.log("D7I'T3B9: AC <- AC', SC <- 0");
             AC.load((short) (~AC.getValue() & AC.getMask()));
         }
         // CME
-        if (r && B8) {
+        else if (r && B8) {
             logger.log("D7I'T3B8: E <- E', SC <- 0");
             E = !E;
         }
         // CIR
-        if (r && B7) {
+        else if (r && B7) {
             logger.log("D7I'T3B7: AC <- shr(AC), AC(15) <- E, E <- AC(0), SC <- 0");
             short value = AC.getValue();
             boolean lsb = (value & 1) != 0;
@@ -204,7 +218,7 @@ public class Computer extends ComputerAbstract {
             AC.load(value);
         }
         // CIL
-        if (r && B6) {
+        else if (r && B6) {
             logger.log("D7I'T3B6: AC <- shl(AC), AC(0) <- E, E <- AC(15), SC <- 0");
             short value = AC.getValue();
             boolean msb = (value & (short) (AC.getMaxValue() >> 1)) != 0;
@@ -215,39 +229,76 @@ public class Computer extends ComputerAbstract {
             AC.load(value);
         }
         // INC
-        if (r && B5) {
+        else if (r && B5) {
             logger.log("D7I'T3B5: AC <- AC + 1, SC <- 0");
             AC.increment();
         }
         // SPA
-        if (r && B4) {
+        else if (r && B4) {
             logger.log("D7I'T3B4: if (AC(15) = 0) then (PC <- PC + 1), SC <- 0");
             if (!AC.bitAt(15))
                 PC.increment();
         }
         // SNA
-        if (r && B3) {
+        else if (r && B3) {
             logger.log("D7I'T3B3: if (AC(15) = 1) then (PC <- PC + 1), SC <- 0");
             if (AC.bitAt(15))
                 PC.increment();
         }
         // SZA
-        if (r && B2) {
+        else if (r && B2) {
             logger.log("D7I'T3B2: if (AC = 0) then (PC <- PC + 1), SC <- 0");
             if (AC.getValue() == 0)
                 PC.increment();
         }
         // SZE
-        if (r && B1) {
+        else if (r && B1) {
             logger.log("D7I'T3B1: if (E = 0) then (PC <- PC + 1), SC <- 0");
             if (!E)
                 PC.increment();
         }
         // HLT
-        if (r && B0) {
+        else if (r && B0) {
             logger.log("D7I'T3B0: S <- 0, SC <- 0");
             S = false;
         }
+
+        // Input-Output
+        // INP
+        else if (p && B11) {
+            logger.log("AC(0-7) <- INPR, FGI <- 0");
+            AC.setBits(0, 7, INPR.getValue());
+            FGI = false;
+        }
+        // OUT
+        else if (p && B10) {
+            logger.log("OUTR <- AC(0-7), FGO <- 0");
+            OUTR.load(AC.bitsRange(0, 7));
+            FGO = false;
+        }
+        // SKI
+        else if (p && B9) {
+            logger.log("if (FGI = 1) then (PC <- PC + 1)");
+            if (FGI)
+                PC.increment();
+        }
+        // SKO
+        else if (p && B8) {
+            logger.log("if (FGO = 1) then (PC <- PC + 1)");
+            if (FGO)
+                PC.increment();
+        }
+        // ION
+        else if (p && B7) {
+            logger.log("IEN <- 1");
+            IEN = true;
+        }
+        // IOF
+        else if (p && B6) {
+            logger.log("IEN <- 0");
+            IEN = false;
+        }
+
     }
 
     private void incSC() {
@@ -295,7 +346,7 @@ public class Computer extends ComputerAbstract {
     public void runListeners() {
         for (Listener l : listeners)
             l.onUpdate(S, M.getData(), AR.getValue(), PC.getValue(), DR.getValue(), AC.getValue(), IR.getValue(),
-                    TR.getValue(), SC, E);
+                    TR.getValue(), SC, E, R, IEN, FGI, FGO, INPR.getValue(), OUTR.getValue());
     }
 
     @Override

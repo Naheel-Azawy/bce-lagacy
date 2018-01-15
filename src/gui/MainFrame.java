@@ -18,11 +18,9 @@ import java.util.prefs.Preferences;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
-import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
-import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -86,13 +84,14 @@ public class MainFrame extends JFrame {
 	private ComputerAbstract c;
 	private Logger logger;
 	private short[] M;
-	private short AR, PC, DR, AC, IR, TR;
+	private short AR, PC, DR, AC, IR, TR, INPR, OUTR;
 	private byte SC;
-	private boolean S, E;
+	private boolean S, E, R, IEN, FGI, FGO;
 	private int mStart;
 
 	private JComboBox<String> pType = new JComboBox<>(P_TYPES);
 	private Txts t;
+	private TxtF scaleF;
 
 	public MainFrame(ComputerAbstract c) {
 		this.c = c;
@@ -111,10 +110,9 @@ public class MainFrame extends JFrame {
 		});
 		setTitle(Info.NAME);
 		setResizable(true);
-		//setIconImage(Info.ICON); // FIXME: this is causing some problems
 
 		final Btn open, save, saveAs, run, tick, hlt, clr, thm, about;
-		final TxtF scaleF, freqF, freqAvgF;
+		final TxtF freqF, freqAvgF;
 
 		JPanel p = new JPanel();
 		p.setLayout(new BorderLayout());
@@ -189,7 +187,7 @@ public class MainFrame extends JFrame {
 		});
 		about.addActionListener(e -> about());
 
-		c.connectOnUpdate((_S, _M, _AR, _PC, _DR, _AC, _IR, _TR, _SC, _E) -> {
+		c.connectOnUpdate((_S, _M, _AR, _PC, _DR, _AC, _IR, _TR, _SC, _E, _R, _IEN, _FGI, _FGO, _INPR, _OUTR) -> {
 			S = _S;
 			M = _M;
 			AR = _AR;
@@ -200,7 +198,13 @@ public class MainFrame extends JFrame {
 			TR = _TR;
 			SC = _SC;
 			E = _E;
-			t.setReg(Format.registers(S, AR, PC, DR, AC, IR, TR, SC, E));
+			R = _R;
+			IEN = _IEN;
+			FGI = _FGI;
+			FGO = _FGO;
+			INPR = _INPR;
+			OUTR = _OUTR;
+			t.setReg(Format.registers(S, AR, PC, DR, AC, IR, TR, SC, E, R, IEN, FGI, FGO, INPR, OUTR));
 			t.setMem(Format.memory(MEM_LINES, mStart, M, PC));
 			if (!_S)
 				Utils.runAfter(() -> t.logS.setValue(t.logS.getMaximum()), 200);
@@ -410,6 +414,8 @@ public class MainFrame extends JFrame {
 
 	public final static String UNDO_ACTION = "Undo";
 	public final static String REDO_ACTION = "Redo";
+	public final static String ZOOM_IN = "ZoomIn";
+	public final static String ZOOM_OUT = "ZoomOut";
 
 	private class Txt extends JPanel implements Themeable {
 
@@ -551,6 +557,30 @@ public class MainFrame extends JFrame {
 			tp.getInputMap().put(
 					KeyStroke.getKeyStroke(KeyEvent.VK_Z, InputEvent.CTRL_DOWN_MASK | InputEvent.SHIFT_DOWN_MASK),
 					REDO_ACTION);
+			tp.getActionMap().put(ZOOM_IN, redoAction = new AbstractAction(ZOOM_IN) {
+				private static final long serialVersionUID = 1L;
+
+				public void actionPerformed(ActionEvent pEvt) {
+					if (scale > 10)
+						return;
+					scale += 0.1;
+					scaleF.setText(Float.toString(scale));
+					updateTheme();
+				}
+			});
+			tp.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, InputEvent.CTRL_DOWN_MASK), ZOOM_IN);
+			tp.getActionMap().put(ZOOM_OUT, redoAction = new AbstractAction(ZOOM_OUT) {
+				private static final long serialVersionUID = 1L;
+
+				public void actionPerformed(ActionEvent pEvt) {
+					if (scale < 0)
+						return;
+					scale -= 0.1;
+					scaleF.setText(Float.toString(scale));
+					updateTheme();
+				}
+			});
+			tp.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, InputEvent.CTRL_DOWN_MASK), ZOOM_OUT);
 		}
 
 		private void menu() {

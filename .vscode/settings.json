@@ -3,6 +3,8 @@
         "CLRE",
         "CMPE",
         "Cout",
+        "INPR",
+        "OUTR",
         "Themeable",
         "Txts",
         "nogui",

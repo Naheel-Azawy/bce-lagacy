@@ -13,12 +13,12 @@ public class Memory {
         this.AR = AR;
     }
 
-    public void read(Register src) {
-        src.load(data[AR.getValue()]);
+    public void read(Register dest) {
+        dest.load(data[AR.getValue()]);
     }
 
-    public void write(Register dest) {
-        data[AR.getValue()] = dest.getValue();
+    public void write(Register src) {
+        data[AR.getValue()] = src.getValue();
     }
 
     public void setContent(short[] in) {

@@ -149,6 +149,24 @@ public class Assembler {
 		case "HLT":
 			bin = 0x7001;
 			break;
+		case "INP":
+			bin = (short) 0xf800;
+			break;
+		case "OUT":
+			bin = (short) 0xf400;
+			break;
+		case "SKI":
+			bin = (short) 0xf200;
+			break;
+		case "SKO":
+			bin = (short) 0xf100;
+			break;
+		case "ION":
+			bin = (short) 0xf080;
+			break;
+		case "IOF":
+			bin = (short) 0xf040;
+			break;
 		case "BIN":
 			try {
 				bin = (short) Integer.parseInt(sp[1], 2);
@@ -225,6 +243,24 @@ public class Assembler {
 			break;
 		case 0x7001:
 			res = "HLT";
+			break;
+		case (short) 0xf800:
+			res = "INP";
+			break;
+		case (short) 0xf400:
+			res = "OUT";
+			break;
+		case (short) 0xf200:
+			res = "SKI";
+			break;
+		case (short) 0xf100:
+			res = "SKO";
+			break;
+		case (short) 0xf080:
+			res = "ION";
+			break;
+		case (short) 0xf040:
+			res = "IOF";
 			break;
 		default:
 			short b = bin;

@@ -175,7 +175,7 @@ public abstract class ComputerAbstract {
 
     public interface Listener {
         void onUpdate(boolean S, short[] M, short AR, short PC, short DR, short AC, short IR, short TR, byte SC,
-                boolean E);
+                boolean E, boolean R, boolean IEN, boolean FGI, boolean FGO, short INPR, short OUTR);
     }
 
     public void connectOnUpdate(Listener l) {
