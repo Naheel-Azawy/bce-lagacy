@@ -21,6 +21,7 @@ import javax.swing.Action;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -30,6 +31,7 @@ import javax.swing.JPopupMenu;
 import javax.swing.JScrollBar;
 import javax.swing.JScrollPane;
 import javax.swing.JSplitPane;
+import javax.swing.JTabbedPane;
 import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
@@ -167,6 +169,7 @@ public class MainFrame extends JFrame {
 			if (loadProgram(t, null)) {
 				setFreq(freqF.getText());
 				c.clearReg();
+				c.clearIO();
 				c.startAsync();
 			}
 		});
@@ -176,6 +179,7 @@ public class MainFrame extends JFrame {
 			c.stop();
 			c.clear();
 			logger.clear();
+			c.clearIO();
 		});
 		thm.addActionListener(e -> this.toggleTheme());
 		scaleF.addActionListener(e -> {
@@ -290,11 +294,9 @@ public class MainFrame extends JFrame {
 	private class Txts implements Themeable {
 
 		JSplitPane p, p2, p3;
-		Txt src, reg, mem, log;
+		Txt src, reg, mem, log, trm;
 		TxtF mStartTF;
-		JScrollBar logS;
-
-		// TODO: add io
+		JScrollBar logS, trmS;
 
 		public Txts() {
 			p = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
@@ -304,7 +306,8 @@ public class MainFrame extends JFrame {
 			src = new Txt("Source", true);
 			reg = new Txt("Registers");
 			mem = new Txt("Memory");
-			log = new Txt("Logs", true);
+			log = new Txt("", true);
+			trm = new Txt("", true);
 
 			reg.setEditable(false);
 			mem.setEditable(false);
@@ -312,14 +315,23 @@ public class MainFrame extends JFrame {
 
 			src.enableGoods();
 			logS = log.getVerticalScrollBar();
+			trmS = trm.getVerticalScrollBar();
 
 			p2.setLeftComponent(src);
 			p2.setRightComponent(reg);
 			p3.setLeftComponent(p2);
 			p3.setRightComponent(mem);
 
+			JTabbedPane bottomTabs = new JTabbedPane();
+			bottomTabs.addTab("Terminal", trm);
+			bottomTabs.addTab("Logs", log);
+			addTheme(() -> {
+				bottomTabs.getParent().setBackground(bgColor2);
+				bottomTabs.setFont(new Font(FONT_NORMAL, Font.PLAIN, txtSize));
+			});
+
 			p.setTopComponent(p3);
-			p.setBottomComponent(log);
+			p.setBottomComponent(bottomTabs);
 
 			src.addTR(new Lbl("Type: "));
 			src.addTR(pType);
@@ -353,20 +365,49 @@ public class MainFrame extends JFrame {
 					return;
 				logger.save(fc.getSelectedFile().getAbsolutePath());
 			}));
+			trm.addTR(new Btn("Clear", e -> c.clearIO()));
 
+			SimpleAttributeSet red = new SimpleAttributeSet();
+			StyleConstants.setForeground(red, Color.RED);
+			Document logD = log.getDocument();
 			logger.connect(l -> {
-				if (l == null) {
-					log.setText("");
-				} else {
-					SimpleAttributeSet red = new SimpleAttributeSet();
-					StyleConstants.setForeground(red, Color.RED);
-					Document d = log.getDocument();
-					try {
-						d.insertString(d.getLength(), l + "\n", l.startsWith("Error:") ? red : null);
-					} catch (Exception ignored) {
-					}
-					try {
+				try {
+					if (l == null) {
+						log.setText("");
+					} else {
+						logD.insertString(logD.getLength(), l + "\n", l.startsWith("Error:") ? red : null);
 						logS.setValue(logS.getMaximum());
+					}
+				} catch (Exception ignored) {
+				}
+			});
+
+			Document trmD = trm.getDocument();
+			c.connectOnOut(ch -> {
+				try {
+					if (ch == '\0') {
+						if (c.isIoCleared())
+							trm.setText("");
+					} else {
+						trmD.insertString(trmD.getLength(), Character.toString(ch), null);
+						trmS.setValue(trmS.getMaximum());
+					}
+				} catch (Exception ignored) {
+				}
+			});
+			JTextPane trmTp = trm.tp;
+			String enter = "enter";
+			trmTp.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), enter);
+			trmTp.getActionMap().put(enter, new AbstractAction() {
+				private static final long serialVersionUID = 1L;
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					String[] t = trm.getText().split("\n");
+					String in = t[t.length - 1];
+					c.putInpStr(in);
+					try {
+						trmD.insertString(trmD.getLength(), "\n", null);
 					} catch (Exception ignored) {
 					}
 				}

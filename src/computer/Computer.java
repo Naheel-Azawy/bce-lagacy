@@ -12,7 +12,7 @@ public class Computer extends ComputerAbstract {
     private boolean T0, T1, T2, T3, T4, T5, T6;
     private boolean D0, D1, D2, D3, D4, D5, D6, D7;
     private boolean I;
-    private boolean R, IEN, FGI, FGO;
+    private boolean R, IEN;
     private boolean r, p;
     private boolean B11, B10, B9, B8, B7, B6, B5, B4, B3, B2, B1, B0;
 
@@ -266,6 +266,7 @@ public class Computer extends ComputerAbstract {
         // Input-Output
         // INP
         else if (p && B11) {
+            INPR.load(INPR_S);
             logger.log("AC(0-7) <- INPR, FGI <- 0");
             AC.setBits(0, 7, INPR.getValue());
             FGI = false;
@@ -274,6 +275,7 @@ public class Computer extends ComputerAbstract {
         else if (p && B10) {
             logger.log("OUTR <- AC(0-7), FGO <- 0");
             OUTR.load(AC.bitsRange(0, 7));
+            putOut((char) OUTR.getValue());
             FGO = false;
         }
         // SKI
@@ -379,9 +381,14 @@ public class Computer extends ComputerAbstract {
         AC.clear();
         IR.clear();
         TR.clear();
+        INPR.clear();
+        OUTR.clear();
         clrSC();
         E = false;
         S = false;
+        R = false;
+        FGI = false;
+        FGO = false;
         runListeners();
     }
 
@@ -399,9 +406,14 @@ public class Computer extends ComputerAbstract {
         AC.clear();
         IR.clear();
         TR.clear();
+        INPR.clear();
+        OUTR.clear();
         clrSC();
         E = false;
         S = false;
+        R = false;
+        FGI = false;
+        FGO = false;
         runListeners();
     }
 

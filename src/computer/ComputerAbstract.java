@@ -22,6 +22,13 @@ public abstract class ComputerAbstract {
     protected int period = 0;
     private double avgFreq = 0;
 
+    protected boolean FGI, FGO;
+    protected short INPR_S;
+    protected short OUTR_S;
+    protected boolean ioCleared;
+    protected List<CharListener> outListeners = new ArrayList<>();
+    protected List<CharListener> inpListeners = new ArrayList<>();
+
     public ComputerAbstract(Logger logger) {
         this.logger = logger;
     }
@@ -185,6 +192,60 @@ public abstract class ComputerAbstract {
 
     public Logger getLogger() {
         return logger;
+    }
+
+    public interface CharListener {
+        void onGot(char c);
+    }
+
+    protected void putOut(char c) {
+        ioCleared = false;
+        while (FGO)
+            ;
+        OUTR_S = (short) c;
+        for (CharListener l : outListeners)
+            l.onGot(c);
+        FGO = true;
+    }
+
+    // FIXME: synchronize
+
+    public void putInp(char c) {
+        ioCleared = false;
+        while (FGI)
+            ;
+        INPR_S = (short) c;
+        for (CharListener l : inpListeners)
+            l.onGot(c);
+        FGI = true;
+    }
+
+    public void putInpStr(String inp) {
+        for (char c : inp.toCharArray())
+            putInp(c);
+        putInp('\0');
+    }
+
+    public boolean isIoCleared() {
+        return ioCleared;
+    }
+
+    public void connectOnOut(CharListener l) {
+        outListeners.add(l);
+    }
+
+    public void connectOnInp(CharListener l) {
+        inpListeners.add(l);
+    }
+
+    public void clearIO() {
+        INPR_S = 0;
+        OUTR_S = 0;
+        ioCleared = true;
+        for (CharListener l : inpListeners)
+            l.onGot('\0');
+        for (CharListener l : outListeners)
+            l.onGot('\0');
     }
 
     public abstract void startEnable();

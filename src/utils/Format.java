@@ -74,7 +74,7 @@ public class Format {
     }
 
     private static String ch(int c) {
-        return Character.isISOControl(c) ? "   " : ("'" + ((char) c) + "'");
+        return (c >= 32 && c <= 176) ? ("'" + ((char) c) + "'") : "   ";
     }
 
 }

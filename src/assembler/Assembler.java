@@ -8,22 +8,37 @@ import java.util.Queue;
 
 public class Assembler {
 
+	private Map<Integer, Short> map = new HashMap<>();
+	private Map<String, Integer> labels = new HashMap<>();
+	private Queue<Thing<Integer, Integer, String>> q = new LinkedList<>();
+	private int ld = 0;
+	private boolean secondRound = false;
+
 	public static short[] assemble(String[] lines) {
-		Map<Integer, Short> map = new HashMap<>();
-		Map<String, Integer> labels = new HashMap<>();
-		int ld = 0;
+		return new Assembler().privateAssemble(lines);
+	}
+
+	public short[] privateAssemble(String[] lines) {
 		String line;
 		String inst;
 		String[] instSp;
-		Queue<Thing<Integer, Integer, String>> q = new LinkedList<>();
 		mainLoop: for (int i = 0; i < lines.length; i++) {
 			line = lines[i].split(";")[0].trim();
 			if (line.length() == 0)
 				continue;
-			switch ((instSp = line.split(" "))[0]) {
+			switch ((instSp = line.split(" "))[0].toUpperCase()) {
 			case "ORG":
+				boolean p = false;
+				if (instSp[1].charAt(0) == '+') {
+					p = true;
+					instSp[1] = instSp[1].substring(1);
+				}
 				try {
-					ld = Integer.parseInt(instSp[1]);
+					int o = Integer.parseInt(instSp[1]);
+					if (p)
+						ld += o;
+					else
+						ld = o;
 				} catch (NumberFormatException e) {
 					err(i, "Expected a number for ORG");
 				}
@@ -33,19 +48,20 @@ public class Assembler {
 			default:
 				int label = line.indexOf(',');
 				if (label != -1) {
-					labels.put(line.substring(0, label), ld);
+					labels.put(line.substring(0, label).trim(), ld);
 					inst = line.substring(label + 1);
 				} else {
 					inst = line;
 				}
-				map.put(ld, assemble(i, inst, ld, labels, q));
+				map.put(ld, assemble(i, inst, ld));
 				ld++;
 			}
 		}
+		secondRound = true;
 		Thing<Integer, Integer, String> p;
 		while (!q.isEmpty()) {
 			p = q.remove();
-			map.put(p.b, assemble(p.a, p.c, p.b, labels, null));
+			map.put(p.b, assemble(p.a, p.c, p.b));
 		}
 		int max = 0;
 		for (Entry<Integer, Short> e : map.entrySet())
@@ -57,11 +73,18 @@ public class Assembler {
 		return arr;
 	}
 
-	private static short assemble(int i, String inst, int ld, Map<String, Integer> labels,
-			Queue<Thing<Integer, Integer, String>> q) {
+	private short assemble(int i, String inst, int ld) {
 		short bin = 0;
 		String[] sp = inst.trim().split(" ");
 		switch (sp[0] = sp[0].toUpperCase()) {
+		case "ADR":
+			Integer a = labels.get(sp[1]);
+			if (a == null) {
+				err(i, "Expected a label \'" + sp[1] + "\'");
+			} else {
+				bin = (short) ((int) a);
+			}
+			break;
 		case "AND":
 		case "ADD":
 		case "LDA":
@@ -102,9 +125,9 @@ public class Assembler {
 					err(i, "Expected a number for address");
 				} else {
 					Integer loc = labels.get(sp[1]);
-					if (q == null && loc == null) {
+					if (secondRound && loc == null) {
 						err(i, "Could not find label \'" + sp[1] + "\'");
-					} else if (q != null) {
+					} else if (!secondRound) {
 						q.add(new Thing<Integer, Integer, String>(i, ld, inst));
 					} else {
 						addr = (short) ((int) loc);
@@ -188,21 +211,68 @@ public class Assembler {
 				err(i, "Expected a number for DEC");
 			}
 			break;
+		case "CHAR":
+			if (sp[1].length() == 1) {
+				bin = (short) sp[1].charAt(0);
+			} else {
+				bin = parseChar(i, sp[1]);
+			}
+			break;
+		case "STRING":
+			if (sp.length > 2) {
+				for (int j = 2; j < sp.length; ++j)
+					sp[1] += " " + sp[j];
+			}
+			bin = parseString(i, sp[1]);
+			break;
 		default:
 			if (sp.length == 1)
 				try {
-					sp[0] = sp[0].toLowerCase();
-					if (sp[0].startsWith("0x"))
+					if (sp[0].toLowerCase().startsWith("0x")) {
 						sp[0] = sp[0].substring(2);
-					bin = (short) Integer.parseInt(sp[0], 16);
+						bin = (short) Integer.parseInt(sp[0], 16);
+					} else if (sp[0].toLowerCase().startsWith("0b")) {
+						sp[0] = sp[0].substring(2);
+						bin = (short) Integer.parseInt(sp[0], 2);
+					} else if (sp[0].startsWith("'")) {
+						bin = parseChar(i, sp[0]);
+					} else {
+						bin = (short) Integer.parseInt(sp[0]);
+					}
 				} catch (NumberFormatException e) {
-					err(i, "Expected hexadecimal a number \'" + sp[0] + "\'");
+					err(i, "Expected a decimal number \'" + sp[0] + "\'");
 				}
 			else {
 				err(i, "Unknown instruction \'" + sp[0] + "\'");
 			}
 		}
 		return bin;
+	}
+
+	private short parseString(int i, String s) {
+		short res = -1;
+		if (s.charAt(0) != '"' || s.charAt(s.length() - 1) != '"') {
+			err(i, "Expected a string \'" + s + "\'");
+		} else {
+			res = (short) s.charAt(1);
+			s = s.substring(1, s.length() - 1);
+			char[] arr = s.toCharArray();
+			for (char c : arr)
+				map.put(ld++, (short) c);
+		}
+		return res;
+	}
+
+	private static short parseChar(int i, String s) {
+		if (s.charAt(s.length() - 1) == '\'') {
+			if (s.length() == 4 && s.charAt(1) == '\\')
+				return (short) s.charAt(2);
+			else
+				return (short) s.charAt(1);
+		} else {
+			err(i, "Expected a character \'" + s + "\'");
+			return -1;
+		}
 	}
 
 	public static String disassemble(short bin) {
