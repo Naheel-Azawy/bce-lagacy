@@ -1,0 +1,61 @@
+; print s1
+lda s1Adr
+sta printPtr
+bsa print
+
+; read to s3
+lda s3Adr
+sta readPtr
+bsa read
+
+; print s2
+lda s2Adr
+sta printPtr
+bsa print
+
+; print s3
+lda s3Adr
+sta printPtr
+bsa print
+
+hlt
+
+s1, str "hello, what's your name? "
+s1Adr, adr s1
+s2, str "hi! nice to meet you "
+s2Adr, adr s2
+s3, 0
+org +10
+s3Adr, adr s3
+
+; print a string in printPtr
+printPtr, 0
+print, nop
+lda printPtr I
+out
+printLoop, lda printPtr
+inc
+sta printPtr
+lda printPtr I
+out
+sza
+bun printLoop
+bun print I
+
+; read a string to readPtr
+readPtr, 0
+read, nop
+read0, ski
+bun read0
+inp
+sta readPtr I
+read1, lda readPtr
+inc
+sta readPtr
+read2, ski
+bun read2
+inp
+sta readPtr I
+sza
+bun read1
+bun read I

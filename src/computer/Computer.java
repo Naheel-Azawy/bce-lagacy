@@ -266,10 +266,11 @@ public class Computer extends ComputerAbstract {
         // Input-Output
         // INP
         else if (p && B11) {
-            INPR.load(INPR_S);
+            INPR.load((short) getInp());
             logger.log("AC(0-7) <- INPR, FGI <- 0");
             AC.setBits(0, 7, INPR.getValue());
             FGI = false;
+            checkFGI();
         }
         // OUT
         else if (p && B10) {

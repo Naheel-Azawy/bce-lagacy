@@ -156,9 +156,8 @@ public class MainFrame extends JFrame {
 				int returnVal = chooser.showOpenDialog(this);
 				if (returnVal == JFileChooser.APPROVE_OPTION) {
 					String path = chooser.getSelectedFile().getAbsolutePath();
-					if (loadProgram(t, path)) {
-						t.setSrc(c.getSource());
-					}
+					loadProgram(t, path);
+					t.setSrc(c.getSource());
 				}
 			} catch (Exception ignored) {
 			}
@@ -173,7 +172,10 @@ public class MainFrame extends JFrame {
 				c.startAsync();
 			}
 		});
-		tick.addActionListener(e -> c.tickAsync());
+		tick.addActionListener(e -> {
+			c.startEnable();
+			c.tickAsync();
+		});
 		hlt.addActionListener(e -> c.stop());
 		clr.addActionListener(e -> {
 			c.stop();
@@ -294,9 +296,11 @@ public class MainFrame extends JFrame {
 	private class Txts implements Themeable {
 
 		JSplitPane p, p2, p3;
+		JTabbedPane bottomTabs;
 		Txt src, reg, mem, log, trm;
 		TxtF mStartTF;
 		JScrollBar logS, trmS;
+		int trmI = 0;
 
 		public Txts() {
 			p = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
@@ -322,7 +326,7 @@ public class MainFrame extends JFrame {
 			p3.setLeftComponent(p2);
 			p3.setRightComponent(mem);
 
-			JTabbedPane bottomTabs = new JTabbedPane();
+			bottomTabs = new JTabbedPane();
 			bottomTabs.addTab("Terminal", trm);
 			bottomTabs.addTab("Logs", log);
 			addTheme(() -> {
@@ -375,7 +379,12 @@ public class MainFrame extends JFrame {
 					if (l == null) {
 						log.setText("");
 					} else {
-						logD.insertString(logD.getLength(), l + "\n", l.startsWith("Error:") ? red : null);
+						if (l.startsWith("Error:")) {
+							logD.insertString(logD.getLength(), l + "\n", red);
+							bottomTabs.setSelectedComponent(log);
+						} else {
+							logD.insertString(logD.getLength(), l + "\n", null);
+						}
 						logS.setValue(logS.getMaximum());
 					}
 				} catch (Exception ignored) {
@@ -391,6 +400,7 @@ public class MainFrame extends JFrame {
 					} else {
 						trmD.insertString(trmD.getLength(), Character.toString(ch), null);
 						trmS.setValue(trmS.getMaximum());
+						trmI++;
 					}
 				} catch (Exception ignored) {
 				}
@@ -403,11 +413,12 @@ public class MainFrame extends JFrame {
 
 				@Override
 				public void actionPerformed(ActionEvent arg0) {
-					String[] t = trm.getText().split("\n");
-					String in = t[t.length - 1];
+					String in = trm.getText().substring(trmI);
 					c.putInpStr(in);
+					trmI += in.length();
 					try {
 						trmD.insertString(trmD.getLength(), "\n", null);
+						trmI++;
 					} catch (Exception ignored) {
 					}
 				}

@@ -22,9 +22,9 @@ public abstract class ComputerAbstract {
     protected int period = 0;
     private double avgFreq = 0;
 
+    private List<Character> inpBuffer = new ArrayList<>();
+    private List<Character> outBuffer = new ArrayList<>();
     protected boolean FGI, FGO;
-    protected short INPR_S;
-    protected short OUTR_S;
     protected boolean ioCleared;
     protected List<CharListener> outListeners = new ArrayList<>();
     protected List<CharListener> inpListeners = new ArrayList<>();
@@ -200,24 +200,27 @@ public abstract class ComputerAbstract {
 
     protected void putOut(char c) {
         ioCleared = false;
-        while (FGO)
-            ;
-        OUTR_S = (short) c;
+        outBuffer.add(c);
         for (CharListener l : outListeners)
             l.onGot(c);
         FGO = true;
     }
 
-    // FIXME: synchronize
-
     public void putInp(char c) {
         ioCleared = false;
-        while (FGI)
-            ;
-        INPR_S = (short) c;
+        inpBuffer.add(c);
         for (CharListener l : inpListeners)
             l.onGot(c);
         FGI = true;
+    }
+
+    protected char getInp() {
+        return inpBuffer.isEmpty() ? '\0' : inpBuffer.remove(0);
+    }
+
+    protected void checkFGI() {
+        if (!inpBuffer.isEmpty())
+            FGI = true;
     }
 
     public void putInpStr(String inp) {
@@ -239,8 +242,8 @@ public abstract class ComputerAbstract {
     }
 
     public void clearIO() {
-        INPR_S = 0;
-        OUTR_S = 0;
+        inpBuffer.clear();
+        outBuffer.clear();
         ioCleared = true;
         for (CharListener l : inpListeners)
             l.onGot('\0');
