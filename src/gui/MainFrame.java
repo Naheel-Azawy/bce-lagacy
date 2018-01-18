@@ -5,10 +5,13 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
+import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
@@ -18,7 +21,9 @@ import java.util.prefs.Preferences;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
+import javax.swing.ActionMap;
 import javax.swing.ImageIcon;
+import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
@@ -40,6 +45,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.UndoableEditEvent;
 import javax.swing.event.UndoableEditListener;
+import javax.swing.text.BadLocationException;
 import javax.swing.text.DefaultEditorKit;
 import javax.swing.text.Document;
 import javax.swing.text.Element;
@@ -394,10 +400,10 @@ public class MainFrame extends JFrame {
 			Document trmD = trm.getDocument();
 			c.connectOnOut(ch -> {
 				try {
-					if (ch == '\0') {
-						if (c.isIoCleared())
-							trm.setText("");
-					} else {
+					if (c.isIoCleared()) {
+						trm.setText("");
+						trmI = 0;
+					} else if (ch != '\0') {
 						trmD.insertString(trmD.getLength(), Character.toString(ch), null);
 						trmS.setValue(trmS.getMaximum());
 						trmI++;
@@ -406,9 +412,13 @@ public class MainFrame extends JFrame {
 				}
 			});
 			JTextPane trmTp = trm.tp;
-			String enter = "enter";
-			trmTp.getInputMap(JComponent.WHEN_FOCUSED).put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), enter);
-			trmTp.getActionMap().put(enter, new AbstractAction() {
+			String enter = "enter", backspace = "backspace", del = "del";
+			InputMap im = trmTp.getInputMap(JComponent.WHEN_FOCUSED);
+			ActionMap am = trmTp.getActionMap();
+			im.put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), enter);
+			im.put(KeyStroke.getKeyStroke(KeyEvent.VK_BACK_SPACE, 0), backspace);
+			im.put(KeyStroke.getKeyStroke(KeyEvent.VK_DELETE, 0), del);
+			am.put(enter, new AbstractAction() {
 				private static final long serialVersionUID = 1L;
 
 				@Override
@@ -421,6 +431,38 @@ public class MainFrame extends JFrame {
 						trmI++;
 					} catch (Exception ignored) {
 					}
+				}
+			});
+			am.put(backspace, new AbstractAction() {
+				private static final long serialVersionUID = 1L;
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					int pos = trmTp.getCaretPosition();
+					if (pos > trmI)
+						try {
+							trmD.remove(pos - 1, 1);
+						} catch (BadLocationException ignored) {
+						}
+				}
+			});
+			am.put(del, new AbstractAction() {
+				private static final long serialVersionUID = 1L;
+
+				@Override
+				public void actionPerformed(ActionEvent arg0) {
+					int pos = trmTp.getCaretPosition();
+					if (pos > trmI)
+						try {
+							trmD.remove(pos, 1);
+						} catch (BadLocationException ignored) {
+						}
+				}
+			});
+			trmTp.addKeyListener(new KeyAdapter() {
+				@Override
+				public void keyPressed(KeyEvent e) {
+					trmTp.setEditable(trmTp.getCaretPosition() >= trmI);
 				}
 			});
 
