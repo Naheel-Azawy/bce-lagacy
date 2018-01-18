@@ -1,22 +1,22 @@
 #!/bin/sh
 if [[ $(whoami) == root ]]; then
-BCE_PATH="/opt/bce/"
+SCS_PATH="/opt/scs/"
 DESKTOP_PATH="/usr/share/applications/"
-BIN_PATH="/bin/bce"
-mkdir -p $BCE_PATH
+BIN_PATH="/bin/scs"
+mkdir -p $SCS_PATH
 mkdir -p $DESKTOP_PATH
-cp bce.jar $BCE_PATH
-cp ic_512.png $BCE_PATH
+cp scs.jar $SCS_PATH
+cp ic_512.png $SCS_PATH
 echo "[Desktop Entry]
-Name=Basic Computer Emulator
-Comment=BCE
-Exec=java -jar $BCE_PATH/bce.jar
-Icon=$BCE_PATH/ic_512.png
+Name=Simple Computer Simulator
+Comment=SCS
+Exec=java -jar $SCS_PATH/scs.jar
+Icon=$SCS_PATH/ic_512.png
 Type=Application
 Terminal=false
-Categories=Development;IDE;" > "$DESKTOP_PATH/bce.desktop"
+Categories=Development;IDE;" > "$DESKTOP_PATH/scs.desktop"
 echo "#!/bin/sh
-java -jar $BCE_PATH/bce.jar \$@" > $BIN_PATH
+java -jar $SCS_PATH/scs.jar \$@" > $BIN_PATH
 chmod +x $BIN_PATH
 echo "Done!"
 else

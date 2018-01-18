@@ -13,10 +13,10 @@
     },
         {
             "type": "java",
-            "name": "Debug (Launch)-Main<BCE>",
+            "name": "Debug (Launch)-Main<SCS>",
             "request": "launch",
             "mainClass": "app.Main",
-            "projectName": "BCE",
+            "projectName": "SCS",
             "args": ""
         },
         {

@@ -1,6 +1,6 @@
-# Basic Computer Emulator
+# Simple Computer Simulator
 ![screenshot](./screenshot.png)
-Emulate a simple computer architecture with GUI and CLI.
+Simulate a simple computer architecture with GUI and CLI.
 ## Architecture
 ### Registers and Flags:
 - AR (Address Register)
@@ -34,6 +34,13 @@ Emulate a simple computer architecture with GUI and CLI.
 - SZA
 - SZE
 - HLT
+#### Input-Output
+- INP
+- OUT
+- SKI
+- SKO
+- ION
+- IOF
 ## Installing
 You don't really need to install it, jump to the usage section!
 
@@ -48,7 +55,7 @@ $ ./compile.sh
 Or use Eclipse
 ## Usage
 ```
-java -jar bce.jar [options] [file]
+java -jar scs.jar [options] [file]
 Options:
   -d: file is decimal text file
   -x: file is hexadecimal text file
@@ -63,11 +70,11 @@ Options:
 ### Examples:
 Normal GUI interface
 ```sh
-java -jar bce.jar
+java -jar scs.jar
 ```
 Using CLI load a file in decimal
 ```sh
-java -jar bce.jar -nogui -d '/file/path'
+java -jar scs.jar -nogui -d '/file/path'
 ```
 Note that is will start execution immediately unless option `-tick` is enabled
 ### Command Line Interface

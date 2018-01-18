@@ -17,7 +17,7 @@ public class Main {
 	private static final String CLI_HELP = Info.NAME + " Help\n" + "Enter:\t\tnext clock\n" + "h,?:\t\thelp\n"
 			+ "q:\t\tquit\n" + "savelog:\tsave log file\n";
 
-	private static final String CMD_HELP = "Usage: java -jar bce.jar [options] [file]\n" + "Options:\n"
+	private static final String CMD_HELP = "Usage: java -jar scs.jar [options] [file]\n" + "Options:\n"
 			+ "  -d: file is decimal text file\n" + "  -x: file is hexadecimal text file\n"
 			+ "  -b: file is binary text file\n" + "  -nogui: use command line interface\n"
 			+ "  -m: quit after finishing execution and only print that memory location\n"

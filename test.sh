@@ -1,7 +1,7 @@
 #!/bin/sh
 function t() {
     echo "Running $1"
-    if [ $(java -jar bce.jar -nogui $4 -m $2 ./test/$1) == $3 ]; then
+    if [ $(java -jar scs.jar -nogui $4 -m $2 ./test/$1) == $3 ]; then
         echo "$1: ok"
     else
         echo "$1: fail"
