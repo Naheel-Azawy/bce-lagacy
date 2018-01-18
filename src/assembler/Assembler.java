@@ -221,6 +221,8 @@ public class Assembler {
 	}
 
 	private int[] assemblePrivate(String[] lines) {
+		labels.clear();
+		secondRound = false;
 		Map<Integer, Integer> resMap = new HashMap<>();
 		Queue<QueueItem> notFoundAdrQueue = new LinkedList<>();
 		Matcher lblMatcher;
@@ -287,8 +289,6 @@ public class Assembler {
 		for (Entry<Integer, Integer> e : resMap.entrySet())
 			arr[e.getKey()] = e.getValue();
 
-		labels.clear();
-		secondRound = false;
 		return arr;
 	}
 
