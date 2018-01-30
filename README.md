@@ -41,6 +41,9 @@ Simulate a simple computer architecture with GUI and CLI.
 - SKO
 - ION
 - IOF
+## Download
+- [DOWNLOAD](https://github.com/Naheel-Azawy/Simple-Computer-Simulator/blob/master/scs.jar?raw=true) the jar
+- Or `git clone https://github.com/Naheel-Azawy/Simple-Computer-Simulator.git`
 ## Installing
 You don't really need to install it, jump to the usage section!
 
