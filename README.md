@@ -1,6 +1,10 @@
 # Simple Computer Simulator
 ![screenshot](./screenshot.png)
 Simulate a simple computer architecture with GUI and CLI.
+## Download
+- [DOWNLOAD](https://raw.githubusercontent.com/Naheel-Azawy/Simple-Computer-Simulator/master/scs.jar) the jar
+- [DOWNLOAD](https://raw.githubusercontent.com/Naheel-Azawy/Simple-Computer-Simulator/master/extra/scs.exe) the Windows exe
+- `git clone https://github.com/Naheel-Azawy/Simple-Computer-Simulator.git`
 ## Architecture
 ### Registers and Flags:
 - AR (Address Register)
@@ -41,9 +45,6 @@ Simulate a simple computer architecture with GUI and CLI.
 - SKO
 - ION
 - IOF
-## Download
-- [DOWNLOAD](https://github.com/Naheel-Azawy/Simple-Computer-Simulator/blob/master/scs.jar?raw=true) the jar
-- Or `git clone https://github.com/Naheel-Azawy/Simple-Computer-Simulator.git`
 ## Installing
 You don't really need to install it, jump to the usage section!
 
