@@ -191,7 +191,7 @@ public class MainFrame extends JFrame {
 		scaleF.addActionListener(e -> {
 			try {
 				scale = Float.parseFloat(scaleF.getText());
-				updateTheme();
+				updateSize();
 			} catch (Exception ignored) {
 			}
 		});
@@ -226,6 +226,7 @@ public class MainFrame extends JFrame {
 		t.setSrc(c.getSource());
 
 		setContentPane(p);
+		updateSize();
 		setTheme(isLight);
 		setLocationRelativeTo(null);
 		Utils.runAfter(() -> t.src.tp.requestFocus(), 500);
@@ -284,10 +285,11 @@ public class MainFrame extends JFrame {
 			bgColor2 = DARK;
 			txtColor = Color.WHITE;
 		}
-		updateTheme();
+		for (Themeable t : themeables)
+			t.theme();
 	}
 
-	public void updateTheme() {
+	public void updateSize() {
 		this.w = (int) (W * scale);
 		this.h = (int) (H * scale);
 		this.txtSize = (int) (TXT_SIZE * scale);
@@ -659,7 +661,7 @@ public class MainFrame extends JFrame {
 						return;
 					scale += 0.1;
 					scaleF.setText(Float.toString(scale));
-					updateTheme();
+					updateSize();
 				}
 			});
 			tp.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_EQUALS, InputEvent.CTRL_DOWN_MASK), ZOOM_IN);
@@ -671,7 +673,7 @@ public class MainFrame extends JFrame {
 						return;
 					scale -= 0.1;
 					scaleF.setText(Float.toString(scale));
-					updateTheme();
+					updateSize();
 				}
 			});
 			tp.getInputMap().put(KeyStroke.getKeyStroke(KeyEvent.VK_MINUS, InputEvent.CTRL_DOWN_MASK), ZOOM_OUT);
