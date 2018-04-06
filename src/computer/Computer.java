@@ -130,7 +130,7 @@ public class Computer extends ComputerAbstract {
             incSC();
         } else if (D1 && T5) {
             logger.log("D1T5: AC <- AC + DR, E <- Cout, SC <- 0");
-            int res = AC.getValue() + DR.getValue();
+            int res = (AC.getValue() & (int) 0x0000ffff) + (DR.getValue() & (int) 0x0000ffff);
             AC.load((short) (res % AC.getMaxValue()));
             E = (res & AC.getMaxValue()) != 0;
             clrSC();
