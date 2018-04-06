@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.FlowLayout;
 import java.awt.Font;
+import java.awt.Frame;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
@@ -15,16 +16,20 @@ import java.awt.event.WindowEvent;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
 import javax.swing.ActionMap;
+import javax.swing.BorderFactory;
+import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.InputMap;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JComponent;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -39,6 +44,7 @@ import javax.swing.JTextArea;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
+import javax.swing.SwingWorker;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.UndoableEditEvent;
@@ -56,6 +62,7 @@ import javax.swing.undo.CannotUndoException;
 import javax.swing.undo.UndoManager;
 
 import app.Info;
+import app.Updater;
 import computer.ComputerAbstract;
 import utils.Format;
 import utils.Logger;
@@ -117,7 +124,7 @@ public class MainFrame extends JFrame {
 		setTitle(Info.NAME);
 		setResizable(true);
 
-		final Btn open, save, saveAs, run, tick, hlt, clr, thm, about;
+		final Btn open, save, saveAs, run, tick, hlt, clr, thm, update, about;
 		final TxtF freqF, freqAvgF;
 
 		JPanel p = new JPanel();
@@ -142,6 +149,7 @@ public class MainFrame extends JFrame {
 		topR.add(new Lbl("Scaling: "));
 		topR.add(scaleF = new TxtF(String.valueOf(scale), 3));
 		topR.add(thm = new Btn("Switch theme"));
+		topR.add(update = new Btn("Update"));
 		topR.add(about = new Btn("About"));
 
 		p.add(top, BorderLayout.NORTH);
@@ -195,7 +203,30 @@ public class MainFrame extends JFrame {
 			} catch (Exception ignored) {
 			}
 		});
-		about.addActionListener(e -> about());
+		about.addActionListener(e -> {
+			final JDialog d = new JDialog(this);
+			showMessageDialog(d, Info.ABOUT, "About", JOptionPane.PLAIN_MESSAGE, new ImageIcon(Info.ICON),
+					new Btn("OK", e1 -> d.dispose()));
+		});
+		update.addActionListener(e -> {
+			progress(this, () -> Updater.getLatestVersion(), latestVersion -> {
+				Runnable install = () -> progress(this, () -> Updater.download(), fName -> Updater.run(fName));
+				String msg;
+				if (latestVersion > Double.parseDouble(Info.VERSION)) {
+					msg = "Would like to update to the latest version (" + latestVersion + ")?";
+				} else {
+					msg = "<html>Already up to date at version (" + latestVersion + ")!<br>Would you like to force update?<html>";
+				}
+				final JDialog d = new JDialog(this);
+				showMessageDialog(d, msg, "Update?", JOptionPane.PLAIN_MESSAGE, null,
+						new Btn("YES", e1 -> {
+							d.dispose();
+							progress(this, () -> Updater.download(), fileName -> Updater.run(fileName));
+						}), new Btn("NO", e1 -> {
+							d.dispose();
+						}));
+			});
+		});
 
 		c.connectOnUpdate((_S, _M, _AR, _PC, _DR, _AC, _IR, _TR, _SC, _E, _R, _IEN, _FGI, _FGO, _INPR, _OUTR) -> {
 			S = _S;
@@ -230,10 +261,6 @@ public class MainFrame extends JFrame {
 		setTheme(isLight);
 		setLocationRelativeTo(null);
 		Utils.runAfter(() -> t.src.tp.requestFocus(), 500);
-	}
-
-	public void about() {
-		JOptionPane.showMessageDialog(this, Info.ABOUT, "About", JOptionPane.PLAIN_MESSAGE, new ImageIcon(Info.ICON));
 	}
 
 	private String getFreq() {
@@ -818,6 +845,101 @@ public class MainFrame extends JFrame {
 			setFont(new Font(FONT_NORMAL, Font.PLAIN, txtSize));
 			setForeground(txtColor);
 		}
+	}
+
+	private class LoadingDialog extends JDialog implements Themeable {
+
+		private static final long serialVersionUID = 1L;
+
+		Lbl l;
+		JPanel p;
+
+		public LoadingDialog(Frame owner) {
+			super(owner);
+			p = new JPanel(new BorderLayout());
+			p.add(l = new Lbl("Please wait..."), BorderLayout.CENTER);
+			setUndecorated(true);
+			getContentPane().add(p);
+			setLocationRelativeTo(this);
+			setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+			setModal(true);
+			theme();
+		}
+
+		@Override
+		public void theme() {
+			l.theme();
+			l.setFont(new Font(FONT_NORMAL, Font.PLAIN, txtSize * 2));
+			p.setBackground(bgColor);
+			pack();
+			setLocationRelativeTo(null);
+		}
+	}
+
+	public interface SimpleTaskIn<O> {
+		O run();
+	}
+
+	public interface SimpleTaskOut<O> {
+		void run(O out);
+	}
+
+	private <O> void progress(Frame owner, SimpleTaskIn<O> async, SimpleTaskOut<O> post) {
+		final JDialog loading = new LoadingDialog(owner);
+
+		SwingWorker<O, Void> worker = new SwingWorker<O, Void>() {
+			@Override
+			protected O doInBackground() throws InterruptedException {
+				if (async != null)
+					return async.run();
+				return null;
+			}
+
+			@Override
+			protected void done() {
+				loading.dispose();
+				if (post != null)
+					try {
+						post.run(get());
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					} catch (ExecutionException e) {
+						e.printStackTrace();
+					}
+			}
+		};
+		worker.execute();
+		loading.setVisible(true);
+		try {
+			worker.get();
+		} catch (Exception e1) {
+			e1.printStackTrace();
+		}
+	}
+
+	public void showMessageDialog(JDialog d, String message, String title, int messageType, Icon icon, Btn... btns) {
+		d.setTitle(title);
+		d.setModal(true);
+		d.setResizable(false);
+		JPanel panel = new JPanel(new BorderLayout());
+		panel.setBackground(bgColor);
+		Lbl label = new Lbl(message);
+		label.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+		label.theme();
+		if (icon != null)
+			label.setIcon(icon);
+		panel.add(label, BorderLayout.CENTER);
+		JPanel btnsP = new JPanel();
+		btnsP.setBackground(bgColor);
+		panel.add(btnsP, BorderLayout.SOUTH);
+		for (int i = 0; i < btns.length; ++i) {
+			btns[i].theme();
+			btnsP.add(btns[i]);
+		}
+		d.setContentPane(panel);
+		d.pack();
+		d.setLocationRelativeTo(null);
+		d.setVisible(true);
 	}
 
 	private List<Themeable> themeables = new ArrayList<>();
