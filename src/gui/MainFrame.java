@@ -210,6 +210,14 @@ public class MainFrame extends JFrame {
 		});
 		update.addActionListener(e -> {
 			progress(this, () -> Updater.getLatestVersion(), latestVersion -> {
+				final JDialog d = new JDialog(this);
+			    if (latestVersion < 0) {
+			        showMessageDialog(d, "Checking for updates failed!", "Error!", JOptionPane.PLAIN_MESSAGE, null,
+			            new Btn("OK", e1 -> {
+							d.dispose();
+						}));
+					return;
+			    }
 				Runnable install = () -> progress(this, () -> Updater.download(), fName -> Updater.run(fName));
 				String msg;
 				if (latestVersion > Double.parseDouble(Info.VERSION)) {
@@ -217,7 +225,6 @@ public class MainFrame extends JFrame {
 				} else {
 					msg = "<html>Already up to date at version (" + latestVersion + ")!<br>Would you like to force update?<html>";
 				}
-				final JDialog d = new JDialog(this);
 				showMessageDialog(d, msg, "Update?", JOptionPane.PLAIN_MESSAGE, null,
 						new Btn("YES", e1 -> {
 							d.dispose();

@@ -153,7 +153,7 @@ public class Updater {
     }
 
     private static String getPathName() {
-        return new File(Updater.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getName();
+        return new File(Updater.class.getProtectionDomain().getCodeSource().getLocation().getPath()).getAbsolutePath();
     }
 
 }
