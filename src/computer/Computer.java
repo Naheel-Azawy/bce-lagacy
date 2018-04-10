@@ -209,13 +209,13 @@ public class Computer extends ComputerAbstract {
         // CIR
         else if (r && B7) {
             logger.log("D7I'T3B7: AC <- shr(AC), AC(15) <- E, E <- AC(0), SC <- 0");
-            short value = AC.getValue();
+            int value = (int) 0x0000ffff & AC.getValue();
             boolean lsb = (value & 1) != 0;
             value >>= 1;
             if (E)
                 value |= (short) (AC.getMaxValue() >> 1);
             E = lsb;
-            AC.load(value);
+            AC.load((short) value);
         }
         // CIL
         else if (r && B6) {
