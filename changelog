@@ -1,3 +1,7 @@
+1.05
+Accept any white spaces
+Restrict scaling to be between 5 and 0.25
+
 1.04
 Fixed CIR E bit (Thanks to Dr. Loay Sabry)
 

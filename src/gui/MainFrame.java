@@ -324,6 +324,8 @@ public class MainFrame extends JFrame {
 	}
 
 	public void updateSize() {
+		if (scale >= 5 || scale <= 0.25)
+			scale = 1;
 		this.w = (int) (W * scale);
 		this.h = (int) (H * scale);
 		this.txtSize = (int) (TXT_SIZE * scale);

@@ -90,7 +90,7 @@ public class Assembler {
 		instructionSetData.put("CHR", new CharData());
 		instructionSetData.put("STR", new StringData());
 		createInstructions();
-		lblPattern = Pattern.compile("[A-Za-z_0-9]+ *,");
+		lblPattern = Pattern.compile("[A-Za-z_0-9]+\\s*,");
 	}
 
 	protected Instruction getInstruction(String name) {
@@ -105,14 +105,9 @@ public class Assembler {
 	}
 
 	protected int[] assembleInstruction(int lineNumber, String inst) {
-		String instName;
-		try {
-			instName = inst.substring(0, inst.indexOf(' ')).toUpperCase();
-		} catch (IndexOutOfBoundsException e) {
-			instName = inst.toUpperCase();
-		}
+		String[] sp = inst.split("\\s+");
+		String instName = sp[0].toUpperCase();
 		if (instName.equals(strAdr)) {
-			String[] sp = inst.split(" ");
 			if (sp.length == 1) {
 				err(lineNumber, "Expected an address after " + instName);
 			}
@@ -134,7 +129,6 @@ public class Assembler {
 			}
 		}
 		if (i instanceof MRInstruction) {
-			String[] sp = inst.split(" ");
 			if (sp.length == 1) {
 				err(lineNumber, "Expected an address after " + instName);
 			}
@@ -260,7 +254,7 @@ public class Assembler {
 			} else {
 				lblMatcher = lblPattern.matcher(lines[i]);
 				if (lblMatcher.find() && lblMatcher.start() == 0) {
-					labels.put(lines[i].substring(0, lblMatcher.end() - 1), adr);
+					labels.put(lines[i].substring(0, lblMatcher.end() - 1).trim(), adr);
 					lines[i] = lines[i].substring(lblMatcher.end()).trim();
 				}
 				int[] bins = assembleInstruction(i, lines[i]);
