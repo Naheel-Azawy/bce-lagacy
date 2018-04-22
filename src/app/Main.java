@@ -5,6 +5,8 @@ import java.util.Scanner;
 
 import javax.swing.UIManager;
 
+import assembler.AssemblerAbstract;
+import assembler.AssemblerBen;
 import computer.Computer;
 import computer.ComputerAbstract;
 import gui.MainFrame;
@@ -45,6 +47,7 @@ public class Main {
 		boolean gui = true;
 		boolean tick = false;
 		boolean q = false;
+		boolean ben = false;
 
 		String o;
 		for (int i = 0; i < args.length; ++i) {
@@ -52,6 +55,9 @@ public class Main {
 			if (o.charAt(0) == '-') {
 				o = o.substring(1);
 				switch (o) {
+				case "ben":
+					ben = true;
+					break;
 				case "d":
 				case "x":
 				case "b":
@@ -98,6 +104,15 @@ public class Main {
 			} else {
 				filePath = o;
 			}
+		}
+
+		if (ben) {
+			AssemblerAbstract a = new AssemblerBen();
+			a.init();
+			int[] arr = a.assemble(Utils.readFile(filePath).split("\n"));
+			for (int w : arr)
+				System.out.println(Integer.toBinaryString(w));
+			return;
 		}
 
 		c.connectOnUpdate((_S, _M, _AR, _PC, _DR, _AC, _IR, _TR, _SC, _E, _R, _IEN, _FGI, _FGO, _INPR, _OUTR) -> {
