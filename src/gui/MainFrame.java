@@ -218,7 +218,6 @@ public class MainFrame extends JFrame {
 						}));
 					return;
 			    }
-				Runnable install = () -> progress(this, () -> Updater.download(), fName -> Updater.run(fName));
 				String msg;
 				if (latestVersion > Double.parseDouble(Info.VERSION)) {
 					msg = "Would like to update to the latest version (" + latestVersion + ")?";
