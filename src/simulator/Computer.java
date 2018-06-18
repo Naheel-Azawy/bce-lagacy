@@ -1,11 +1,13 @@
 package simulator;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import assembler.Assembler;
 
-import instructions.InstructionSet;
+import simulator.InstructionSet;
 
 import utils.Logger;
 import utils.Utils;
@@ -17,6 +19,9 @@ public abstract class Computer {
     public static final int TYPE_DEC = 2;
     public static final int TYPE_BIN = 3;
 
+    protected Memory M;
+    protected RegistersSet regSet = new RegistersSet();
+    protected Map<Integer, String> memLabels = new HashMap<>();
     protected List<Listener> listeners = new ArrayList<>();
     protected Logger logger;
     protected String src = "";
@@ -32,8 +37,13 @@ public abstract class Computer {
     protected List<CharListener> outListeners = new ArrayList<>();
     protected List<CharListener> inpListeners = new ArrayList<>();
 
-    public Computer(Logger logger) {
+    protected String name;
+    protected String description;
+
+    public Computer(Logger logger, String name, String description) {
         this.logger = logger;
+        this.name = name;
+        this.description = description;
     }
 
     public boolean loadProgram(int type, String program, String path) {
@@ -69,7 +79,7 @@ public abstract class Computer {
             logger.log("Loaded Assembly program");
         src = program;
         try {
-            loadMemory(Assembler.assemble(program.split("\n")));
+            loadMemory(Assembler.assemble(getInstructionSet(), program.split("\n"), memLabels));
             return true;
         } catch (Exception e) {
             logger.log("Error: " + e.getMessage());
@@ -87,7 +97,7 @@ public abstract class Computer {
             logger.log("Loaded binary program");
         src = program.replace(" ", "");
         try {
-            loadMemory(Utils.parseShortArray((src).split("\n"), 2));
+            loadMemory(Utils.parseIntArray((src).split("\n"), 2));
             return true;
         } catch (Exception e) {
             logger.log("Error: " + e.getMessage());
@@ -105,7 +115,7 @@ public abstract class Computer {
             logger.log("Loaded hexadecimal program");
         src = program;
         try {
-            loadMemory(Utils.parseShortArray(program.split("\n"), 16));
+            loadMemory(Utils.parseIntArray(program.split("\n"), 16));
             return true;
         } catch (Exception e) {
             logger.log("Error: " + e.getMessage());
@@ -123,7 +133,7 @@ public abstract class Computer {
             logger.log("Loaded decimal program");
         src = program;
         try {
-            loadMemory(Utils.parseShortArray(program.split("\n")));
+            loadMemory(Utils.parseIntArray(program.split("\n")));
             return true;
         } catch (Exception e) {
             logger.log("Error: " + e.getMessage());
@@ -184,8 +194,7 @@ public abstract class Computer {
     }
 
     public interface Listener {
-        void onUpdate(boolean S, short[] M, short AR, short PC, short DR, short AC, short IR, short TR, byte SC,
-                boolean E, boolean R, boolean IEN, boolean FGI, boolean FGO, short INPR, short OUTR);
+        void onUpdate(Formatter formatter);
     }
 
     public void connectOnUpdate(Listener l) {
@@ -254,6 +263,24 @@ public abstract class Computer {
             l.onGot('\0');
     }
 
+    public RegistersSet getRegisters() {
+        return regSet;
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append(name).append('\n');
+        for (int i = 0; i < name.length(); ++i)
+            sb.append('-');
+        sb.append('\n').append(description).append("\n\n");
+        sb.append("Word size:\t").append(M.getWordSize()).append(" bits\n");
+        sb.append("Memory size:\t").append(M.getSize()).append(" words\n");
+        sb.append("\nRegisters:\n").append(getRegisters().toString()).append('\n');
+        sb.append("Instruction Set:\n").append(getInstructionSet().toString());
+        return sb.toString();
+    }
+
     public abstract InstructionSet getInstructionSet();
 
     public abstract void startEnable();
@@ -266,16 +293,152 @@ public abstract class Computer {
 
     public abstract boolean isRunning();
 
+    public abstract boolean isIOSupported();
+
     public abstract void clear();
 
     public abstract void loadMemory(int[] in);
 
     public abstract int[] getMemory();
 
+    public abstract int getPC();
+
     public abstract void clearMem();
 
     public abstract void clearReg();
 
     public abstract void runListeners();
+
+    public abstract Formatter getFormatter();
+
+    public static class RegistersSet {
+
+        private List<String> names = new ArrayList<>();
+        private List<String> descs = new ArrayList<>();
+
+        public void add(Register r) {
+            names.add(r.getName());
+            descs.add(r.getDescription());
+        }
+
+        public void add(String name, String description) {
+            names.add(name);
+            descs.add(description);
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < names.size(); ++i) {
+                sb.append(names.get(i)).append(":\t").append(descs.get(i)).append('\n');
+            }
+            return sb.toString();
+        }
+
+    }
+
+    private static final String MEM_HEADER = "   addr  hex     decimal     text       ";
+    private static final String MEM_LINES = "----------------------------------------";
+    private static final String REG_HEADER = "      hex     decimal   ";
+    private static final String REG_LINES = "------------------------";
+    private static final String WRD_P1 = "%2s %-4s: 0x%0";
+    private static final String WRD_P2 = "X %8d %s %-10s";
+    private static final String REG_P1 = "%2s\t0x%0";
+    private static final String REG_P2 = "X %8d %s";
+    private static final String PNT = "->";
+    private static final String NO_PNT = "  ";
+
+    public static abstract class Formatter {
+
+        private Computer c;
+        private String reg, wrd;
+        private String[] regsNames;
+
+        public Formatter(Computer c, int wordSize) {
+            this.c = c;
+            int hexSize = (int) Math.ceil(wordSize / 4);
+            reg = REG_P1 + hexSize + REG_P2;
+            wrd = WRD_P1 + hexSize + WRD_P2;
+        }
+
+        public abstract String[] getRegsNames();
+
+        public abstract int[] getRegsValues();
+
+        public String[] getRegsNames2() {
+            return regsNames == null ? regsNames = getRegsNames() : regsNames;
+        }
+
+        public String getRegisters(int width, int height) {
+            String res = REG_HEADER + "\n" + REG_LINES + "\n";
+            String[] names = getRegsNames2();
+            int[] vals = getRegsValues();
+            for (int i = 0; i < names.length; ++i) {
+                res += String.format(reg, names[i], vals[i], (short) vals[i], Utils.intToPrintableCharString(vals[i]));
+                res += "\n";
+            }
+            return res;
+        }
+
+        public String getMemory(int mStart, int width, int height) {
+            int start = 0;
+            String res = MEM_HEADER + "\n" + MEM_LINES + "\n";
+            int l;
+            String p;
+            int[] m = c.getMemory();
+            String lbl;
+            int pc = c.getPC();
+            for (int i = 0; (i < height - 4 || height == -1) && i < m.length; ++i) {
+                l = i + start + mStart;
+                p = l == pc - 1 ? PNT : NO_PNT;
+                lbl = c.memLabels.get(l);
+                if (lbl == null)
+                    lbl = String.format("%04d", l);
+                else if (lbl.length() > 4)
+                    lbl = lbl.substring(0, 2) + "..";
+                res += String.format(wrd, p, lbl, m[l], (short) m[l], Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l]));
+                res += "\n";
+            }
+            return res;
+        }
+
+        public String getAll(int mStart, int width, int height) {
+            int start = 0;
+                String res = "   Memory                               | CPU Registers\n";
+                res += MEM_HEADER + "| " + REG_HEADER + "\n";
+                res += MEM_LINES + "|" + REG_LINES + "\n";
+                String[] names = getRegsNames2();
+                int[] vals = getRegsValues();
+                int l;
+                String p;
+                int logI;
+                int maxLog = height - names.length - 6;
+                int[] m = c.getMemory();
+                String lbl;
+                int pc = c.getPC();
+                for (int i = 0; (i < height - 4 || height == -1) && i < m.length; ++i) {
+                    l = i + start + mStart;
+                    p = l == pc - 1 ? PNT : NO_PNT;
+                    logI = i - names.length - 2;
+                    lbl = c.memLabels.get(l);
+                    if (lbl == null)
+                        lbl = String.format("%04d", l);
+                    else if (lbl.length() > 4)
+                        lbl = lbl.substring(0, 2) + "..";
+                    res += String.format(wrd, p, lbl, m[l], (short) m[l], Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l]));
+                    if (i < names.length)
+                        res += String.format(" | " + reg, names[i], vals[i], (short) vals[i], Utils.intToPrintableCharString(vals[i]));
+                    else if (i == names.length || i == names.length + 2)
+                        res += " |-------------------";
+                    else if (i == names.length + 1)
+                        res += " | Logs:";
+                    else if (c.logger.size() != 0 && logI < c.logger.size())
+                        res += " | " + c.logger.get((c.logger.size() - maxLog < 0 ? 0 : c.logger.size() - maxLog) + logI);
+                    res += "\n";
+                }
+                return res;
+        }
+
+    }
 
 }

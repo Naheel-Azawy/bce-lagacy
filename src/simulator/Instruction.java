@@ -1,4 +1,4 @@
-package instructions;
+package simulator;
 
 public class Instruction {
 
@@ -8,11 +8,11 @@ public class Instruction {
     protected boolean indirect;
     protected String description;
 
-    public Instruction(String name, int bin, boolean memory, boolean indirect, String description) {
+    public Instruction(String name, int bin, int flags, String description) {
         this.name = name;
         this.bin = bin;
-        this.memory = memory;
-        this.indirect = indirect;
+        this.memory = (flags & InstructionSet.MEMORY) != 0;
+        this.indirect = (flags & InstructionSet.INDIRECT) != 0;
         this.description = description;
     }
 
@@ -27,7 +27,7 @@ public class Instruction {
         int b = bin | address;
         if (indirect) {
             b |= indirectBit;
-        } else {
+        } else if (indirectBit != 0) {
             throw new RuntimeException("Indirect references not allowed here");
         }
         return b;
@@ -45,7 +45,7 @@ public class Instruction {
         if (indirect) {
             if (indirectBit != 0)
                 res += " I";
-        } else {
+        } else if (indirectBit != 0) {
             throw new RuntimeException("Indirect references not allowed here");
         }
         return res;

@@ -2,17 +2,22 @@ package simulator;
 
 public class Register {
 
+    private String name;
+    private String description;
+
     private int value;
     private int mask;
     private int max;
 
-    public Register(int bits) {
+    public Register(int bits, String name, String description) {
         max = 1 << bits;
         mask = max - 1;
+        this.name = name;
+        this.description = description;
     }
 
     public void load(int in) {
-        value = in;
+        value = in & mask;
     }
 
     public void increment() {
@@ -52,4 +57,13 @@ public class Register {
     public int getMask() {
         return mask;
     }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
 }

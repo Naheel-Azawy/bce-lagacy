@@ -8,13 +8,17 @@ import java.util.Queue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import instructions.Instruction;
-import instructions.InstructionSet;
+import simulator.Instruction;
+import simulator.InstructionSet;
 
-public abstract class Assembler {
+public class Assembler {
+
+    public static int[] assemble(InstructionSet instructionSet, String[] lines, Map<Integer, String> memLabels) {
+        return new Assembler(instructionSet).assemble(lines, memLabels);
+    }
 
     public static int[] assemble(InstructionSet instructionSet, String[] lines) {
-        return new Assembler(instructionSet).assemble(lines);
+        return new Assembler(instructionSet).assemble(lines, null);
     }
 
     public static String disassemble(InstructionSet instructionSet, int bin) {
@@ -47,7 +51,10 @@ public abstract class Assembler {
     }
 
     protected Instruction getInstruction(String name) {
-        return instructionSet.get(name);
+        Instruction i = instructionSetData.get(name);
+        if (i == null)
+            i = instructionSet.get(name);
+        return i;
     }
 
     protected int[] assembleInstruction(int lineNumber, String inst) {
@@ -95,7 +102,7 @@ public abstract class Assembler {
             if (sp.length > 2) {
                 sp[2] = sp[2].toLowerCase();
                 if (sp[2].equals("i")) {
-                    if (!isIndirectSupported())
+                    if (!i.isIndirect())
                         err(lineNumber, "Indirect not supported");
                     indirect = true;
                 } else {
@@ -105,7 +112,12 @@ public abstract class Assembler {
             if (sp.length > 3) {
                 unknown(lineNumber, inst);
             }
-            return new int[] { i.getBin(adr, indirect ? 0x8000 : 0) };
+            try {
+                return new int[] { i.getBin(adr, indirect ? instructionSet.getIndirectMask() : 0) };
+            } catch (Exception e) {
+                err(lineNumber, e.getMessage());
+                return null;
+            }
         } else if (i instanceof Data) {
             String data = inst.substring(3).trim();
             if (data.length() == 0)
@@ -162,7 +174,7 @@ public abstract class Assembler {
         return res;
     }
 
-    public int[] assemble(String[] lines) {
+    private int[] assemble(String[] lines, Map<Integer, String> memLabels) {
         labels.clear();
         secondRound = false;
         Map<Integer, Integer> resMap = new HashMap<>();
@@ -231,25 +243,29 @@ public abstract class Assembler {
         for (Entry<Integer, Integer> e : resMap.entrySet())
             arr[e.getKey()] = e.getValue();
 
+        if (memLabels != null) {
+            for (String k : labels.keySet()) {
+                memLabels.put(labels.get(k), k);
+            }
+        }
+
         return arr;
     }
 
     public String disassemble(int bin) {
-        bin = bin & 0xffff;
+        bin = bin & instructionSet.getBitsMask();
         Instruction i = instructionSet.get(bin);
         if (i == null) {
-            i = instructionSet.get(bin & 0x7000);
+            i = instructionSet.get(bin & instructionSet.getOpCodeMask());
         }
         if (i == null) {
             return String.format("%04X", (short) bin);
         } else if (i.isMemory()) {
-            return i.getAsm(bin & 0x0fff, bin & 0x8000);
+            return i.getAsm(bin & instructionSet.getAddressMask(), bin & instructionSet.getIndirectMask());
         } else {
             return i.getAsm();
         }
     }
-
-    protected abstract boolean isIndirectSupported();
 
     private static void err(int i, String msg) {
         throw new RuntimeException(String.format("%d: %s\n", i + 1, msg));
@@ -259,10 +275,10 @@ public abstract class Assembler {
         err(i, "Unknown instruction format " + inst);
     }
 
-    protected class Data extends Instruction {
+    protected static class Data extends Instruction {
 
         public Data() {
-            super(null, 0, false, false, null);
+            super(null, 0, 0, null);
         }
 
         public int getBin(String data) {
@@ -270,24 +286,24 @@ public abstract class Assembler {
         }
     }
 
-    protected class DecData extends Data {
+    protected static class DecData extends Data {
     }
 
-    protected class HexData extends Data {
+    protected static class HexData extends Data {
         @Override
         public int getBin(String data) {
             return Integer.parseInt(data, 16);
         }
     }
 
-    protected class BinData extends Data {
+    protected static class BinData extends Data {
         @Override
         public int getBin(String data) {
             return Integer.parseInt(data, 2);
         }
     }
 
-    protected class CharData extends Data {
+    protected static class CharData extends Data {
         @Override
         public int getBin(String s) {
             if (s.length() == 1) {
@@ -305,7 +321,7 @@ public abstract class Assembler {
         }
     }
 
-    protected class StringData extends Data {
+    protected static class StringData extends Data {
         public int[] getBins(String s) {
             if (s.charAt(0) != '"' || s.charAt(s.length() - 1) != '"') {
                 return null;

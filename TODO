@@ -11,9 +11,9 @@
 -OK-class simulator.Computer:
     --copy ComputerAbstract
     --getInstructionSet
--class simulator.Memory:
+-OK-class simulator.Memory:
     --can take a map of labels (int to string)
-class ui.Console:
+-class ui.Console:
     --takes a Simulator, input and output streams
     --works as a commandline interface, can be connected to any of the Simulator streams
 -class Main:
