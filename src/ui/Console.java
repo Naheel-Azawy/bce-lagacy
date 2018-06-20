@@ -394,6 +394,7 @@ public class Console {
                 c.startEnable();
                 c.tickAsync();
                 break;
+            case "stop":
             case "halt":
             case "hlt":
                 c.stop();
@@ -449,7 +450,7 @@ public class Console {
                                 out.println();
                             trmI = 0;
                         } else if (ch != '\0') {
-                            out.print(c);
+                            out.print(ch);
                             if (ch == '\n')
                                 trmI = 0;
                             else
@@ -459,7 +460,7 @@ public class Console {
                     });
                 String line;
                 while ((line = in.nextLine()) != null) {
-                    line = line.substring(trmI);
+                    line = line.substring(trmI); // TODO: out of index
                     if (trmLock) continue;
                     c.putInpStr(line);
                     trmI = 0;
