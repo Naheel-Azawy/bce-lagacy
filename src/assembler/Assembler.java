@@ -81,9 +81,9 @@ public class Assembler {
                 err(lineNumber, "Unknown instruction \'" + instName + "\'");
             }
         }
-        if (i.isMemory()) {
+        if (i.isArg()) {
             if (sp.length == 1) {
-                err(lineNumber, "Expected an address after " + instName);
+                err(lineNumber, "Expected an argument after " + instName);
             }
             int adr = 0;
             try {
@@ -260,7 +260,7 @@ public class Assembler {
         }
         if (i == null) {
             return String.format("%04X", (short) bin);
-        } else if (i.isMemory()) {
+        } else if (i.isArg()) {
             return i.getAsm(bin & instructionSet.getAddressMask(), bin & instructionSet.getIndirectMask());
         } else {
             return i.getAsm();

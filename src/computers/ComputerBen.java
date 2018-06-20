@@ -19,7 +19,7 @@ public class ComputerBen extends Computer {
                 add(new Instruction("ADD", 0x20, MEMORY, "Add from memory to A"));
                 add(new Instruction("SUB", 0x30, MEMORY, "Subtract memory from A"));
                 add(new Instruction("STA", 0x40, MEMORY, "Store A to memory"));
-                add(new Instruction("LDI", 0x50, MEMORY, "")); // TODO
+                add(new Instruction("LDI", 0x50, IMMEDIATE, "Load immediate"));
                 add(new Instruction("JMP", 0x60, MEMORY, "Jump"));
                 add(new Instruction("JC", 0x70, MEMORY, "Jump if carry"));
                 add(new Instruction("JZ", 0x80, MEMORY, "Jump if A is zero"));
@@ -174,7 +174,7 @@ public class ComputerBen extends Computer {
         // LDI
         else if (LDI && T2) {
             logger.log("LDA T2: IO AI");
-            // TODO
+            A.load(IR.bitsRange(0, 3));
             incSC();
         } else if (LDI && T3) {
             logger.log("LDI T3: NOP");

@@ -8,8 +8,9 @@ import java.util.Map;
 
 public abstract class InstructionSet {
 
-    public static final int INDIRECT = 0x1;
-    public static final int MEMORY = 0x2;
+    public static final int MEMORY    = 0x1;
+    public static final int INDIRECT  = 0x2;
+    public static final int IMMEDIATE = 0x4;
 
     private List<String> ordered = new ArrayList<>();
     private Map<String, Instruction> map = new HashMap<>();

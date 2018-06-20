@@ -373,8 +373,12 @@ public abstract class Computer {
             String res = REG_HEADER + "\n" + REG_LINES + "\n";
             String[] names = getRegsNames2();
             int[] vals = getRegsValues();
-            for (int i = 0; i < names.length; ++i) {
+            int i;
+            for (i = 0; i < names.length; ++i) {
                 res += String.format(reg, names[i], vals[i], (short) vals[i], Utils.intToPrintableCharString(vals[i]));
+                res += "\n";
+            }
+            for (; i < height - 3; ++i) {
                 res += "\n";
             }
             return res;
@@ -388,7 +392,8 @@ public abstract class Computer {
             int[] m = c.getMemory();
             String lbl;
             int pc = c.getPC();
-            for (int i = 0; (i < height - 4 || height == -1) && i < m.length; ++i) {
+            int i;
+            for (i = 0; (i < height - 3 || height == -1) && i < m.length; ++i) {
                 l = i + start + mStart;
                 p = l == pc - 1 ? PNT : NO_PNT;
                 lbl = c.memLabels.get(l);
@@ -399,44 +404,51 @@ public abstract class Computer {
                 res += String.format(wrd, p, lbl, m[l], (short) m[l], Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l]));
                 res += "\n";
             }
+            for (; i < height - 3; ++i) {
+                res += "\n";
+            }
             return res;
         }
 
         public String getAll(int mStart, int width, int height) {
             int start = 0;
-                String res = "   Memory                               | CPU Registers\n";
-                res += MEM_HEADER + "| " + REG_HEADER + "\n";
-                res += MEM_LINES + "|" + REG_LINES + "\n";
-                String[] names = getRegsNames2();
-                int[] vals = getRegsValues();
-                int l;
-                String p;
-                int logI;
-                int maxLog = height - names.length - 6;
-                int[] m = c.getMemory();
-                String lbl;
-                int pc = c.getPC();
-                for (int i = 0; (i < height - 4 || height == -1) && i < m.length; ++i) {
-                    l = i + start + mStart;
-                    p = l == pc - 1 ? PNT : NO_PNT;
-                    logI = i - names.length - 2;
-                    lbl = c.memLabels.get(l);
-                    if (lbl == null)
-                        lbl = String.format("%04d", l);
-                    else if (lbl.length() > 4)
-                        lbl = lbl.substring(0, 2) + "..";
-                    res += String.format(wrd, p, lbl, m[l], (short) m[l], Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l]));
-                    if (i < names.length)
-                        res += String.format(" | " + reg, names[i], vals[i], (short) vals[i], Utils.intToPrintableCharString(vals[i]));
-                    else if (i == names.length || i == names.length + 2)
-                        res += " |-------------------";
-                    else if (i == names.length + 1)
-                        res += " | Logs:";
-                    else if (c.logger.size() != 0 && logI < c.logger.size())
-                        res += " | " + c.logger.get((c.logger.size() - maxLog < 0 ? 0 : c.logger.size() - maxLog) + logI);
-                    res += "\n";
-                }
-                return res;
+            String res = "   Memory                               | CPU Registers\n";
+            res += MEM_HEADER + "| " + REG_HEADER + "\n";
+            res += MEM_LINES + "|" + REG_LINES + "\n";
+            String[] names = getRegsNames2();
+            int[] vals = getRegsValues();
+            int l;
+            String p;
+            int logI;
+            int maxLog = height - names.length - 5;
+            int[] m = c.getMemory();
+            String lbl;
+            int pc = c.getPC();
+            int i;
+            for (i = 0; (i < height - 3 || height == -1) && i < m.length; ++i) {
+                l = i + start + mStart;
+                p = l == pc - 1 ? PNT : NO_PNT;
+                logI = i - names.length - 2;
+                lbl = c.memLabels.get(l);
+                if (lbl == null)
+                    lbl = String.format("%04d", l);
+                else if (lbl.length() > 4)
+                    lbl = lbl.substring(0, 2) + "..";
+                res += String.format(wrd, p, lbl, m[l], (short) m[l], Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l]));
+                if (i < names.length)
+                    res += String.format(" | " + reg, names[i], vals[i], (short) vals[i], Utils.intToPrintableCharString(vals[i]));
+                else if (i == names.length || i == names.length + 2)
+                    res += " |-------------------";
+                else if (i == names.length + 1)
+                    res += " | Logs:";
+                else if (c.logger.size() != 0 && logI < c.logger.size())
+                    res += " | " + c.logger.get((c.logger.size() - maxLog < 0 ? 0 : c.logger.size() - maxLog) + logI);
+                res += "\n";
+            }
+            for (; i < height - 3; ++i) {
+                res += "\n";
+            }
+            return res;
         }
 
     }
