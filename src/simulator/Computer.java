@@ -19,6 +19,7 @@ public abstract class Computer {
     public static final int TYPE_DEC = 2;
     public static final int TYPE_BIN = 3;
 
+    public int mStart = 0;
     protected Memory M;
     protected RegistersSet regSet = new RegistersSet();
     protected Map<Integer, String> memLabels = new HashMap<>();
@@ -40,8 +41,8 @@ public abstract class Computer {
     protected String name;
     protected String description;
 
-    public Computer(Logger logger, String name, String description) {
-        this.logger = logger;
+    public Computer(String name, String description) {
+        this.logger = new Logger();
         this.name = name;
         this.description = description;
     }

@@ -84,8 +84,8 @@ public class ComputerAC extends Computer {
     private boolean r, p;
     private boolean B11, B10, B9, B8, B7, B6, B5, B4, B3, B2, B1, B0;
 
-    public ComputerAC(Logger logger) {
-        super(logger, "Accumulator Computer", "A simple computer with a single accumulator register and I/O support.");
+    public ComputerAC() {
+        super("Accumulator Computer", "A simple computer with a single accumulator register and I/O support.");
         setupDataUnit();
         M = new Memory(4096, 16);
         M.setAR(AR);

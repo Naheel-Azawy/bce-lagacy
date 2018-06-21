@@ -1,15 +1,20 @@
 #!/bin/sh
 function t() {
     echo "Running $1"
-    if [ $(java -jar scs.jar -nogui $4 -m $2 ./test/$1) == $3 ]; then
-        echo "$1: ok"
+    F=$1
+    P=./test/$1
+    M=$2
+    E=$3
+    shift 3
+    if [ $(java -jar scs.jar $@ -nw -m $M $P) == $E ]; then
+        echo "$F: ok"
     else
-        echo "$1: fail"
+        echo "$F: fail"
     fi
 }
 
 t test 6 60
-t test-dec 6 60 -d
-t test-hex 6 60 -x
-t test-bin 6 60 -b
+t test-dec 6 60 -t dec
+t test-hex 6 60 -t hex
+t test-bin 6 60 -t bin
 t test-mul 20 17088

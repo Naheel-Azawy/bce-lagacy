@@ -6,18 +6,17 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
 
-public class Client {
+import utils.Utils;
 
-    // TODO: client send console dimentions to server
+public class Client {
 
     Socket socket;
     InputStreamReader in;
     PrintStream out;
     BufferedReader inCl;
     PrintStream outCl;
-    boolean closed = false;
 
-    public Client(String host, int port) {
+    public Client(String host, int port, String exec, String[] args) {
 
         try {
             socket = new Socket(host, port);
@@ -28,26 +27,41 @@ public class Client {
             outCl = System.out;
 
             new Thread(() -> {
-                    char c;
+                    int c;
                     try {
                         for (;;) {
-                            c = (char) in.read();
-                            if (c == '\0') {
+                            c = in.read();
+                            if (c == 0xFFFFFFFF) {
                                 outCl.println("Server closed");
-                                closed = true;
-                                break;
+                                System.exit(0);
                             }
-                            outCl.print(c);
+                            outCl.print((char) c);
                         }
                     } catch (IOException e) {
                         System.err.println(e);
                     }
             }).start();
 
+            String argsStr = "";
+            if (args.length != 0) {
+                StringBuilder sb = new StringBuilder();
+                for (String arg : args) {
+                    sb.append(arg).append('`');
+                }
+                argsStr = sb.toString();
+            }
+            out.println(argsStr);
+
+            sendDim();
+
+            if (exec != null)
+                out.println(exec);
+
             String line;
-            while (!closed) {
+            while (true) {
                 line = inCl.readLine();
               	if (line == null) break;
+                sendDim();
                 out.println(line);
             }
 
@@ -66,6 +80,10 @@ public class Client {
             }
         }
 
+    }
+
+    private void sendDim() {
+        out.printf("__DIM %d %d\n", Utils.getTerminalCols(), Utils.getTerminalLines());
     }
 
 }

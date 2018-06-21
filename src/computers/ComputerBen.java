@@ -61,8 +61,8 @@ public class ComputerBen extends Computer {
     private boolean T0, T1, T2, T3, T4;
     private boolean LDA, ADD, SUB, STA, LDI, JMP, JC, JZ, OUTI, HLT;
 
-    public ComputerBen(Logger logger) {
-        super(logger, "Ben's Computer", "Even simpler computer built by Ben Eater on a breadboard.\nhttps://www.youtube.com/user/eaterbc");
+    public ComputerBen() {
+        super("Ben's Computer", "Even simpler computer built by Ben Eater on a breadboard.\nhttps://www.youtube.com/user/eaterbc");
         setupDataUnit();
         M = new Memory(16, 8);
         M.setAR(MAR);

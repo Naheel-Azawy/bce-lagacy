@@ -8,13 +8,10 @@ import java.util.Scanner;
 
 import computers.ComputerAC;
 import simulator.Computer;
-import ui.Console;
 
 import utils.Logger;
 
 public class Server {
-
-    static final String[] ARGS = { "-nw" };
 
     int port;
     ServerSocket socket;
@@ -22,14 +19,19 @@ public class Server {
 
     public Server(int port) {
         this.port = port;
-        this.c = new ComputerAC(new Logger()); // TODO
         try {
             socket = new ServerSocket(port);
             for (;;) {
                 Socket client = socket.accept();
                 new Thread(() -> {
                         try {
-                            new Console(c, ARGS, new Scanner(client.getInputStream()), new PrintStream(client.getOutputStream()));
+                            Scanner s = new Scanner(client.getInputStream());
+                            PrintStream p = new PrintStream(client.getOutputStream());
+                            String[] args = s.nextLine().split("`");
+                            Console con = new Console(false, c, args, s, p);
+                            if (c == null)
+                                c = con.getComputer();
+                            con.run();
                         } catch (IOException e) {
                             System.err.println(e);
                         }
