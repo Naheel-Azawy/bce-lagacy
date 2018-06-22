@@ -1,4 +1,4 @@
-package utils;
+package io.naheel.scs.base.utils;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -28,7 +28,7 @@ public class Utils {
     public static String readFile(String path) {
         String content = null;
         File file = new File(path);
-        FileReader reader = null;
+        FileReader reader;
         try {
             reader = new FileReader(file);
             char[] chars = new char[(int) file.length()];

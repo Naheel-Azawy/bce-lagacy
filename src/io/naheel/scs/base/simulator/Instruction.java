@@ -1,9 +1,11 @@
-package simulator;
+package io.naheel.scs.base.simulator;
+
+import java.util.Locale;
 
 public class Instruction {
 
-		protected String name;
-		protected int bin;
+    protected String name;
+    protected int bin;
     protected boolean memory;
     protected boolean indirect;
     protected boolean immediate;
@@ -35,7 +37,7 @@ public class Instruction {
         return b;
     }
 
-		public String getAsm() {
+    public String getAsm() {
         return name;
 		}
 
@@ -43,7 +45,7 @@ public class Instruction {
         if (!memory && !immediate) {
             throw new RuntimeException("Arguments not allowed");
         }
-        String res = name + " " + String.format("%04d", arg);
+        String res = name + " " + String.format(Locale.US, "%04d", arg);
         if (indirect) {
             if (indirectBit != 0)
                 res += " I";

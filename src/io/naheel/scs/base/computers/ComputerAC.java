@@ -1,17 +1,18 @@
-package computers;
+package io.naheel.scs.base.computers;
 
-import utils.Logger;
+import io.naheel.scs.base.simulator.Instruction;
+import io.naheel.scs.base.simulator.InstructionSet;
 
-import simulator.Instruction;
-import simulator.InstructionSet;
-
-import simulator.Computer;
-import simulator.Memory;
-import simulator.Register;
+import io.naheel.scs.base.simulator.Computer;
+import io.naheel.scs.base.simulator.Memory;
+import io.naheel.scs.base.simulator.Register;
 
 public class ComputerAC extends Computer {
 
-    public static final InstructionSet INSTURCTION_SET = new InstructionSet() {
+    public static final String NAME = "Accumulator Computer";
+    public static final String DESCRIPTION = "A simple computer with a single accumulator register and I/O support.";
+
+    public static final InstructionSet INSTRUCTION_SET = new InstructionSet() {
             @Override
             public void init() {
                 add(new Instruction("AND", 0x0000, MEMORY | INDIRECT, "Logical AND memory with AC"));
@@ -81,11 +82,10 @@ public class ComputerAC extends Computer {
     private boolean D0, D1, D2, D3, D4, D5, D6, D7;
     private boolean I;
     private boolean R, IEN;
-    private boolean r, p;
     private boolean B11, B10, B9, B8, B7, B6, B5, B4, B3, B2, B1, B0;
 
     public ComputerAC() {
-        super("Accumulator Computer", "A simple computer with a single accumulator register and I/O support.");
+        super(NAME, DESCRIPTION);
         setupDataUnit();
         M = new Memory(4096, 16);
         M.setAR(AR);
@@ -141,8 +141,8 @@ public class ComputerAC extends Computer {
             incSC();
         }
 
-        r = D7 && !I && T3;
-        p = D7 && I && T3;
+        boolean r = D7 && !I && T3;
+        boolean p = D7 && I && T3;
         if (r || p) {
             byte B = (byte) (Math.log(IR.bitsRange(0, 11)) / Math.log(2));
             B11 = B == 11;
@@ -284,7 +284,7 @@ public class ComputerAC extends Computer {
         // CIR
         else if (r && B7) {
             logger.log("D7I'T3B7: AC <- shr(AC), AC(15) <- E, E <- AC(0), SC <- 0");
-            int value = (int) 0x0000ffff & AC.getValue();
+            int value = AC.getValue(); // TODO:
             boolean lsb = (value & 1) != 0;
             value >>= 1;
             if (E)
@@ -400,7 +400,7 @@ public class ComputerAC extends Computer {
 
     @Override
     public InstructionSet getInstructionSet() {
-        return INSTURCTION_SET;
+        return INSTRUCTION_SET;
     }
 
     @Override

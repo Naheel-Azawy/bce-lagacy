@@ -1,11 +1,14 @@
-package gui;
+package io.naheel.scs;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.EventQueue;
 import java.awt.FlowLayout;
 import java.awt.Font;
 import java.awt.Frame;
+import java.awt.GridLayout;
+import java.awt.Image;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.InputEvent;
@@ -45,6 +48,7 @@ import javax.swing.JTextField;
 import javax.swing.JTextPane;
 import javax.swing.KeyStroke;
 import javax.swing.SwingWorker;
+import javax.swing.UIManager;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.event.UndoableEditEvent;
@@ -61,17 +65,18 @@ import javax.swing.undo.CannotRedoException;
 import javax.swing.undo.CannotUndoException;
 import javax.swing.undo.UndoManager;
 
-import app.Info;
-import app.Updater;
+import io.naheel.scs.base.Console;
+import io.naheel.scs.base.computers.Computers;
+import io.naheel.scs.base.utils.Info;
 
-import simulator.Computer;
+import io.naheel.scs.base.simulator.Computer;
 
-import utils.Logger;
-import utils.Utils;
+import io.naheel.scs.base.utils.Utils;
 
 public class MainFrame extends JFrame {
 
     private static final long serialVersionUID = 1L;
+    private static final Image ICON = new ImageIcon(ClassLoader.getSystemClassLoader().getResource("ic.png")).getImage();
     private static final Color LIGHT = new Color(0xE8E8E7);
     private static final Color DARK = new Color(0x252A2C);
     private static final Color DARKER = new Color(0x1E1E1E);
@@ -86,6 +91,17 @@ public class MainFrame extends JFrame {
     private static final int MEM_LEN = 20;
     private static final int MEM_LINES = MEM_LEN + 5;
 
+    public static void startGui(Console con) {
+        EventQueue.invokeLater(() -> {
+                try {
+                    UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel");
+                    new MainFrame(con.getComputer()).setVisible(true);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            });
+    }
+
     private float scale = 1f;
     private int w, h;
     private Color bgColor;
@@ -96,16 +112,12 @@ public class MainFrame extends JFrame {
     private Preferences prefs;
 
     private Computer c;
-    private Logger logger;
-    private int mStart;
 
     private JComboBox<String> pType = new JComboBox<>(P_TYPES);
     private Txts t;
-    private TxtF scaleF;
 
     public MainFrame(Computer c) {
         this.c = c;
-        this.logger = c.getLogger();
         this.prefs = Preferences.userNodeForPackage(MainFrame.class);
         this.scale = prefs.getFloat(KEY_SCALE, 1f);
         this.isLight = prefs.getBoolean(KEY_LIGHT, false);
@@ -121,7 +133,7 @@ public class MainFrame extends JFrame {
         setTitle(Info.NAME);
         setResizable(true);
 
-        final Btn open, save, saveAs, run, tick, hlt, clr, thm, update, about;
+        final Btn open, save, saveAs, run, tick, hlt, clr, more;
         final TxtF freqF, freqAvgF;
 
         JPanel p = new JPanel();
@@ -143,11 +155,7 @@ public class MainFrame extends JFrame {
         topR.add(freqAvgF = new TxtF(getFreq(), 4));
         topR.add(new Lbl("Freq (Hz): "));
         topR.add(freqF = new TxtF(getFreq(), 4));
-        topR.add(new Lbl("Scaling: "));
-        topR.add(scaleF = new TxtF(String.valueOf(scale), 3));
-        topR.add(thm = new Btn("Switch theme"));
-        topR.add(update = new Btn("Update"));
-        topR.add(about = new Btn("About"));
+        topR.add(more = new Btn("More"));
 
         p.add(top, BorderLayout.NORTH);
         p.add((t = new Txts()).getPane(), BorderLayout.CENTER);
@@ -166,82 +174,47 @@ public class MainFrame extends JFrame {
                     if (returnVal == JFileChooser.APPROVE_OPTION) {
                         String path = chooser.getSelectedFile().getAbsolutePath();
                         loadProgram(t, path);
-                        t.setSrc(c.getSource());
+                        t.setSrc(getComputer().getSource());
                     }
                 } catch (Exception ignored) {
                 }
             });
-        save.addActionListener(e -> saveProgram(c.getSourcePath()));
+        save.addActionListener(e -> saveProgram(getComputer().getSourcePath()));
         saveAs.addActionListener(e -> saveProgram(null));
         run.addActionListener(e -> {
                 if (loadProgram(t, null)) {
                     setFreq(freqF.getText());
-                    c.clearReg();
-                    c.clearIO();
-                    c.startAsync();
+                    getComputer().clearReg();
+                    getComputer().clearIO();
+                    getComputer().startAsync();
                 }
             });
         tick.addActionListener(e -> {
-                c.startEnable();
-                c.tickAsync();
+                getComputer().startEnable();
+                getComputer().tickAsync();
             });
-        hlt.addActionListener(e -> c.stop());
+        hlt.addActionListener(e -> getComputer().stop());
         clr.addActionListener(e -> {
-                c.stop();
-                c.clear();
-                logger.clear();
-                c.clearIO();
+                getComputer().stop();
+                getComputer().clear();
+                getComputer().getLogger().clear();
+                getComputer().clearIO();
             });
-        thm.addActionListener(e -> this.toggleTheme());
-        scaleF.addActionListener(e -> {
-                try {
-                    scale = Float.parseFloat(scaleF.getText());
-                    updateSize();
-                } catch (Exception ignored) {
-                }
-            });
-        about.addActionListener(e -> {
-                final JDialog d = new JDialog(this);
-                showMessageDialog(d, Info.ABOUT, "About", JOptionPane.PLAIN_MESSAGE, new ImageIcon(Info.ICON),
-                                  new Btn("OK", e1 -> d.dispose()));
-            });
-        update.addActionListener(e -> {
-                progress(this, () -> Updater.getLatestVersion(), latestVersion -> {
-                        final JDialog d = new JDialog(this);
-                        if (latestVersion < 0) {
-                            showMessageDialog(d, "Checking for updates failed!", "Error!", JOptionPane.PLAIN_MESSAGE, null,
-                                              new Btn("OK", e1 -> {
-                                                      d.dispose();
-                                              }));
-                            return;
-                        }
-                        String msg;
-                        if (latestVersion > Double.parseDouble(Info.VERSION)) {
-                            msg = "Would like to update to the latest version (" + latestVersion + ")?";
-                        } else {
-                            msg = "<html>Already up to date at version (" + latestVersion + ")!<br>Would you like to force update?<html>";
-                        }
-                        showMessageDialog(d, msg, "Update?", JOptionPane.PLAIN_MESSAGE, null,
-                                          new Btn("YES", e1 -> {
-                                                  d.dispose();
-                                                  progress(this, () -> Updater.download(), fileName -> Updater.run(fileName));
-                                          }), new Btn("NO", e1 -> {
-                                                  d.dispose();
-                                          }));
-                    });
+        more.addActionListener(e -> {
+                new MoreDialog(this).setVisible(true);
             });
 
-        c.connectOnUpdate(formatter -> {
+        getComputer().connectOnUpdate(formatter -> {
                 t.setReg(formatter.getRegisters(-1, -1));
-                t.setMem(formatter.getMemory(mStart, -1, MEM_LINES));
-                if (!c.isRunning())
+                t.setMem(formatter.getMemory(getComputer().mStart, -1, MEM_LINES));
+                if (!getComputer().isRunning())
                     Utils.runAfter(() -> t.logS.setValue(t.logS.getMaximum()), 200);
-                if (c.getAvgFrequency() > 0) {
-                    freqAvgF.setText(String.format("%.2f", c.getAvgFrequency()));
+                if (getComputer().getAvgFrequency() > 0) {
+                    freqAvgF.setText(String.format("%.2f", getComputer().getAvgFrequency()));
                 }
             });
-        c.runListeners();
-        t.setSrc(c.getSource());
+        getComputer().runListeners();
+        t.setSrc(getComputer().getSource());
 
         setContentPane(p);
         updateSize();
@@ -250,17 +223,21 @@ public class MainFrame extends JFrame {
         Utils.runAfter(() -> t.src.tp.requestFocus(), 500);
     }
 
+    public Computer getComputer() {
+        return c;
+    }
+
     private String getFreq() {
-        int f = c.getFrequency();
+        int f = getComputer().getFrequency();
         return f < 0 ? "---" : Integer.toString(f);
     }
 
     private void setFreq(String s) {
         try {
             int f = Integer.parseInt(s);
-            c.setFrequency(f);
+            getComputer().setFrequency(f);
         } catch (Exception e) {
-            c.setFrequency(-1);
+            getComputer().setFrequency(-1);
         }
     }
 
@@ -278,11 +255,11 @@ public class MainFrame extends JFrame {
 
     private boolean loadProgram(Txts t, String path) {
         if (path != null && !new File(path).exists()) {
-            logger.log("Error: File not found \'" + path + "\'");
+            getComputer().getLogger().log("Error: File not found \'" + path + "\'");
             return false;
         }
         String src = path == null ? t.getSrc() : Utils.readFile(path);
-        return c.loadProgram(pType.getSelectedIndex(), src, path);
+        return getComputer().loadProgram(pType.getSelectedIndex(), src, path);
     }
 
     public void toggleTheme() {
@@ -361,7 +338,7 @@ public class MainFrame extends JFrame {
 
             src.addTR(new Lbl("Type: "));
             src.addTR(pType);
-            pType.setSelectedIndex(c.getSourceType());
+            pType.setSelectedIndex(getComputer().getSourceType());
             pType.addActionListener(e -> loadProgram(this, null));
             addTheme(() -> {
                     pType.setBackground(bgColor);
@@ -369,19 +346,19 @@ public class MainFrame extends JFrame {
                     pType.setFont(new Font(FONT_NORMAL, Font.PLAIN, txtSize));
                 });
             src.addTR(new Btn("Load", e -> loadProgram(this, null)));
-            reg.addTR(new Btn("Clear", e -> c.clearReg()));
+            reg.addTR(new Btn("Clear", e -> getComputer().clearReg()));
             mem.addTR(new Lbl("Start: "));
             mem.addTR(mStartTF = new TxtF("0", 4, e -> {
                         try {
-                            mStart = Integer.parseInt(((TxtF) e.getSource()).getText());
-                            setMem(mStart);
+                            getComputer().mStart = Integer.parseInt(((TxtF) e.getSource()).getText());
+                            setMem(getComputer().mStart);
                         } catch (Exception ignored) {
                         }
             }));
-            mem.addTR(new Btn("↓", e -> setMem(++mStart)));
-            mem.addTR(new Btn("↑", e -> setMem(--mStart)));
-            mem.addTR(new Btn("Clear", e -> c.clearMem()));
-            log.addTR(new Btn("Clear", e -> logger.clear()));
+            mem.addTR(new Btn("↓", e -> setMem(++getComputer().mStart)));
+            mem.addTR(new Btn("↑", e -> setMem(--getComputer().mStart)));
+            mem.addTR(new Btn("Clear", e -> getComputer().clearMem()));
+            log.addTR(new Btn("Clear", e -> getComputer().getLogger().clear()));
             log.addTR(new Btn("Save", e -> {
                         final JFileChooser fc = new JFileChooser(Utils.getDir());
                         fc.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
@@ -389,14 +366,14 @@ public class MainFrame extends JFrame {
                         int actionDialog = fc.showOpenDialog(MainFrame.this);
                         if (actionDialog != JFileChooser.APPROVE_OPTION)
                             return;
-                        logger.save(fc.getSelectedFile().getAbsolutePath());
+                        getComputer().getLogger().save(fc.getSelectedFile().getAbsolutePath());
             }));
-            trm.addTR(new Btn("Clear", e -> c.clearIO()));
+            trm.addTR(new Btn("Clear", e -> getComputer().clearIO()));
 
             SimpleAttributeSet red = new SimpleAttributeSet();
             StyleConstants.setForeground(red, Color.RED);
             Document logD = log.getDocument();
-            logger.connect(l -> {
+            getComputer().getLogger().connect(l -> {
                     try {
                         if (l == null) {
                             log.setText("");
@@ -414,9 +391,9 @@ public class MainFrame extends JFrame {
                 });
 
             Document trmD = trm.getDocument();
-            c.connectOnOut(ch -> {
+            getComputer().connectOnOut(ch -> {
                     try {
-                        if (c.isIoCleared()) {
+                        if (getComputer().isIoCleared()) {
                             trm.setText("");
                             trmI = 0;
                         } else if (ch != '\0') {
@@ -440,7 +417,7 @@ public class MainFrame extends JFrame {
                     @Override
                     public void actionPerformed(ActionEvent arg0) {
                         String in = trm.getText().substring(trmI);
-                        c.putInpStr(in);
+                        getComputer().putInpStr(in);
                         trmI += in.length();
                         try {
                             trmD.insertString(trmD.getLength(), "\n", null);
@@ -506,14 +483,19 @@ public class MainFrame extends JFrame {
         }
 
         public void setMem(int mStart) {
-            int[] m = c.getMemory();
+            int[] m = getComputer().getMemory();
             if (mStart < 0)
                 mStart = 0;
             else if (mStart > m.length - MEM_LEN - 1)
                 mStart = m.length - MEM_LEN - 1;
-            MainFrame.this.mStart = mStart;
+            MainFrame.this.getComputer().mStart = mStart;
+            try {
+                setMem(getComputer().getFormatter().getMemory(mStart, -1, MEM_LINES));
+            } catch (ArrayIndexOutOfBoundsException e) {
+                mStart = 0;
+                setMem(getComputer().getFormatter().getMemory(mStart, -1, MEM_LINES));
+            }
             mStartTF.setText(String.valueOf(mStart));
-            setMem(c.getFormatter().getMemory(mStart, -1, MEM_LINES));
         }
 
         @Override
@@ -677,7 +659,6 @@ public class MainFrame extends JFrame {
                         if (scale > 10)
                             return;
                         scale += 0.1;
-                        scaleF.setText(Float.toString(scale));
                         updateSize();
                     }
                 });
@@ -689,7 +670,6 @@ public class MainFrame extends JFrame {
                         if (scale < 0)
                             return;
                         scale -= 0.1;
-                        scaleF.setText(Float.toString(scale));
                         updateSize();
                     }
                 });
@@ -908,9 +888,13 @@ public class MainFrame extends JFrame {
     }
 
     public void showMessageDialog(JDialog d, String message, String title, int messageType, Icon icon, Btn... btns) {
+        showMessageDialog(false, false, d, message, title, messageType, icon, btns);
+    }
+
+    public void showMessageDialog(boolean resizable, boolean scroll, JDialog d, String message, String title, int messageType, Icon icon, Btn... btns) {
         d.setTitle(title);
         d.setModal(true);
-        d.setResizable(false);
+        d.setResizable(resizable);
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(bgColor);
         Lbl label = new Lbl(message);
@@ -918,7 +902,13 @@ public class MainFrame extends JFrame {
         label.theme();
         if (icon != null)
             label.setIcon(icon);
-        panel.add(label, BorderLayout.CENTER);
+        if (scroll) {
+            JScrollPane sp = new JScrollPane(label);
+            sp.getViewport().setBackground(bgColor);
+            panel.add(sp, BorderLayout.CENTER);
+        } else {
+            panel.add(label, BorderLayout.CENTER);
+        }
         JPanel btnsP = new JPanel();
         btnsP.setBackground(bgColor);
         panel.add(btnsP, BorderLayout.SOUTH);
@@ -930,6 +920,128 @@ public class MainFrame extends JFrame {
         d.pack();
         d.setLocationRelativeTo(null);
         d.setVisible(true);
+    }
+
+    private class MoreDialog extends JDialog implements Themeable {
+
+        private static final long serialVersionUID = 1L;
+
+        JPanel p;
+        Btn thm, archAbout, update, about;
+        TxtF scaleF;
+        JComboBox<String> archs;
+        Lbl thmL, scaleL, archsL, archAboutL, updateL, aboutL;
+
+        MoreDialog(Frame owner) {
+            super(owner);
+            setTitle("More");
+            p = new JPanel(new GridLayout(6, 2, 10, 10));
+            p.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+            p.add(thmL = new Lbl("Theme:"));
+            p.add(thm = new Btn("Switch theme"));
+
+            p.add(scaleL = new Lbl("Scaling:"));
+            p.add(scaleF = new TxtF(String.valueOf(scale), 3));
+
+            p.add(archsL = new Lbl("Select architecture:"));
+            p.add(archs = new JComboBox<>(Computers.NAMES));
+
+            p.add(archAboutL = new Lbl("Architecture details:"));
+            p.add(archAbout = new Btn("Details"));
+
+            p.add(updateL = new Lbl("Updates:"));
+            p.add(update = new Btn("Check for updates"));
+
+            p.add(aboutL = new Lbl("About:"));
+            p.add(about = new Btn("About"));
+
+            thm.addActionListener(e -> toggleTheme());
+            scaleF.addActionListener(e -> {
+                    try {
+                        scale = Float.parseFloat(scaleF.getText());
+                        updateSize();
+                    } catch (Exception ignored) {
+                    }
+                });
+            archs.addActionListener(e -> {
+                    if (Computers.NAMES[archs.getSelectedIndex()].equals(getComputer().getName()))
+                        return;
+                    String s = Computers.NAMES_SHORT[archs.getSelectedIndex()];
+                    c = Computers.strToComputer(s).from(c);
+                    getComputer().runListeners();
+                });
+            archAbout.addActionListener(e -> {
+                    JDialog d = new JDialog(this);
+                    showMessageDialog(true, true, d, fixNewLine(getComputer().toString()), "Architecture Details", JOptionPane.PLAIN_MESSAGE, null,
+                                      new Btn("OK", e1 -> {
+                                              d.dispose();
+                                      }));
+                });
+            update.addActionListener(e -> {
+                    progress(MainFrame.this, () -> Updater.getLatestVersion(), latestVersion -> {
+                            final JDialog d = new JDialog(this);
+                            if (latestVersion < 0) {
+                                showMessageDialog(d, "Checking for updates failed!", "Error!", JOptionPane.PLAIN_MESSAGE, null,
+                                                  new Btn("OK", e1 -> {
+                                                          d.dispose();
+                                                  }));
+                                return;
+                            }
+                            String msg;
+                            if (latestVersion > Double.parseDouble(Info.VERSION)) {
+                                msg = "Would like to update to the latest version (" + latestVersion + ")?";
+                            } else {
+                                msg = "<html>Already up to date at version (" + latestVersion + ")!<br>Would you like to force update?<html>";
+                            }
+                            showMessageDialog(d, msg, "Update?", JOptionPane.PLAIN_MESSAGE, null,
+                                              new Btn("YES", e1 -> {
+                                                      d.dispose();
+                                                      progress(MainFrame.this, () -> Updater.download(), fileName -> Updater.run(fileName));
+                                              }), new Btn("NO", e1 -> {
+                                                      d.dispose();
+                                              }));
+                        });
+                });
+            about.addActionListener(e -> {
+                    final JDialog d = new JDialog(this);
+                    showMessageDialog(d, Info.ABOUT, "About", JOptionPane.PLAIN_MESSAGE, new ImageIcon(ICON),
+                                      new Btn("OK", e1 -> d.dispose()));
+                });
+
+            getContentPane().add(p);
+            setLocationRelativeTo(this);
+            setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+            setModal(true);
+
+            addTheme(this);
+            thmL.theme();
+            scaleL.theme();
+            archsL.theme();
+            archAboutL.theme();
+            updateL.theme();
+            aboutL.theme();
+            thm.theme();
+            archAbout.theme();
+            update.theme();
+            about.theme();
+            scaleF.theme();
+            theme();
+        }
+
+        @Override
+        public void theme() {
+            p.setBackground(bgColor);
+            archs.setBackground(bgColor);
+            archs.setForeground(txtColor);
+            archs.setFont(new Font(FONT_NORMAL, Font.PLAIN, txtSize));
+            pack();
+            setLocationRelativeTo(null);
+        }
+    }
+
+    private static String fixNewLine(String s) {
+        return "<html>" + s.replace("\n", "<br>") + "</html>";
     }
 
     private List<Themeable> themeables = new ArrayList<>();

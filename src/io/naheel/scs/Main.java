@@ -1,6 +1,8 @@
-package app;
+package io.naheel.scs;
 
 import java.util.Scanner;
+
+import io.naheel.scs.base.Console;
 
 public class Main {
 

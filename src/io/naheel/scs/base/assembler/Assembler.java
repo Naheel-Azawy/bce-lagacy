@@ -1,15 +1,16 @@
-package assembler;
+package io.naheel.scs.base.assembler;
 
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import simulator.Instruction;
-import simulator.InstructionSet;
+import io.naheel.scs.base.simulator.Instruction;
+import io.naheel.scs.base.simulator.InstructionSet;
 
 public class Assembler {
 
@@ -268,7 +269,7 @@ public class Assembler {
     }
 
     private static void err(int i, String msg) {
-        throw new RuntimeException(String.format("%d: %s\n", i + 1, msg));
+        throw new RuntimeException(String.format(Locale.US, "%d: %s\n", i + 1, msg));
     }
 
     private static void unknown(int i, String inst) {
@@ -306,6 +307,7 @@ public class Assembler {
     protected static class CharData extends Data {
         @Override
         public int getBin(String s) {
+            s = fixEscapeChars(s);
             if (s.length() == 1) {
                 return (int) s.charAt(0);
             } else {
@@ -327,6 +329,7 @@ public class Assembler {
                 return null;
             } else {
                 s = s.substring(1, s.length() - 1);
+                s = fixEscapeChars(s);
                 char[] arr = s.toCharArray();
                 int[] res = new int[arr.length + 1];
                 for (int i = 0; i < arr.length; ++i)
@@ -335,6 +338,17 @@ public class Assembler {
                 return res;
             }
         }
+    }
+
+    private static String fixEscapeChars(String in) {
+        return in.replace("\\t", "\t")
+            .replace("\\b", "\b")
+            .replace("\\n", "\n")
+            .replace("\\r", "\r")
+            .replace("\\f", "\f")
+            .replace("\\'", "\'")
+            .replace("\\\"", "\"")
+            .replace("\\\\", "\\");
     }
 
     private static class QueueItem {

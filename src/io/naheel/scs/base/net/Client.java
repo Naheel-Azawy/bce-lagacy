@@ -1,4 +1,4 @@
-package app;
+package io.naheel.scs.base.net;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -6,7 +6,7 @@ import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.Socket;
 
-import utils.Utils;
+import io.naheel.scs.base.utils.Utils;
 
 public class Client {
 
@@ -38,7 +38,7 @@ public class Client {
                             outCl.print((char) c);
                         }
                     } catch (IOException e) {
-                        System.err.println(e);
+                        System.err.println(e.toString());
                     }
             }).start();
 
@@ -66,7 +66,7 @@ public class Client {
             }
 
         } catch (IOException e) {
-            System.err.println(e);
+            System.err.println(e.toString());
         } finally {
             try {
                 if (socket != null)
@@ -76,7 +76,7 @@ public class Client {
                 if (out != null)
                     out.close();
             } catch (Exception e) {
-                System.err.println(e);
+                System.err.println(e.toString());
             }
         }
 

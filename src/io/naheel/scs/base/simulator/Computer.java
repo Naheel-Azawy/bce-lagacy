@@ -1,16 +1,15 @@
-package simulator;
+package io.naheel.scs.base.simulator;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
-import assembler.Assembler;
+import io.naheel.scs.base.assembler.Assembler;
 
-import simulator.InstructionSet;
-
-import utils.Logger;
-import utils.Utils;
+import io.naheel.scs.base.utils.Logger;
+import io.naheel.scs.base.utils.Utils;
 
 public abstract class Computer {
 
@@ -45,6 +44,44 @@ public abstract class Computer {
         this.logger = new Logger();
         this.name = name;
         this.description = description;
+    }
+
+    public Computer from(Computer c) {
+
+        List<Listener> listenersTmp = this.listeners;
+        Logger loggerTmp = this.logger;
+        String srcTmp = this.src;
+        String srcPathTmp = this.srcPath;
+        int srcTypeTmp = this.srcType;
+        int periodTmp = this.period;
+        List<Character> inpBufferTmp = this.inpBuffer;
+        List<Character> outBufferTmp = this.outBuffer;
+        List<CharListener> outListenersTmp = this.outListeners;
+        List<CharListener> inpListenersTmp = this.inpListeners;
+
+        this.listeners = c.listeners;
+        this.logger = c.logger;
+        this.src = c.src;
+        this.srcPath = c.srcPath;
+        this.srcType = c.srcType;
+        this.period = c.period;
+        this.inpBuffer = c.inpBuffer;
+        this.outBuffer = c.outBuffer;
+        this.outListeners = c.outListeners;
+        this.inpListeners = c.inpListeners;
+
+        c.listeners = listenersTmp;
+        c.logger = loggerTmp;
+        c.src = srcTmp;
+        c.srcPath = srcPathTmp;
+        c.srcType = srcTypeTmp;
+        c.period = periodTmp;
+        c.inpBuffer = inpBufferTmp;
+        c.outBuffer = outBufferTmp;
+        c.outListeners = outListenersTmp;
+        c.inpListeners = inpListenersTmp;
+
+        return this;
     }
 
     public boolean loadProgram(int type, String program, String path) {
@@ -198,7 +235,7 @@ public abstract class Computer {
         void onUpdate(Formatter formatter);
     }
 
-    public void connectOnUpdate(Listener l) {
+    public synchronized void connectOnUpdate(Listener l) {
         listeners.add(l);
         runListeners();
     }
@@ -266,6 +303,10 @@ public abstract class Computer {
 
     public RegistersSet getRegisters() {
         return regSet;
+    }
+
+    public String getName() {
+        return name;
     }
 
     @Override
@@ -371,23 +412,23 @@ public abstract class Computer {
         }
 
         public String getRegisters(int width, int height) {
-            String res = REG_HEADER + "\n" + REG_LINES + "\n";
+            StringBuilder res = new StringBuilder(REG_HEADER + "\n" + REG_LINES + "\n");
             String[] names = getRegsNames2();
             int[] vals = getRegsValues();
             int i;
             for (i = 0; i < names.length; ++i) {
-                res += String.format(reg, names[i], vals[i], (short) vals[i], Utils.intToPrintableCharString(vals[i]));
-                res += "\n";
+                res.append(String.format(reg, names[i], vals[i], (short) vals[i], Utils.intToPrintableCharString(vals[i])));
+                res.append("\n");
             }
             for (; i < height - 3; ++i) {
-                res += "\n";
+                res.append("\n");
             }
-            return res;
+            return res.toString();
         }
 
         public String getMemory(int mStart, int width, int height) {
             int start = 0;
-            String res = MEM_HEADER + "\n" + MEM_LINES + "\n";
+            StringBuilder res = new StringBuilder(MEM_HEADER + "\n" + MEM_LINES + "\n");
             int l;
             String p;
             int[] m = c.getMemory();
@@ -399,23 +440,23 @@ public abstract class Computer {
                 p = l == pc - 1 ? PNT : NO_PNT;
                 lbl = c.memLabels.get(l);
                 if (lbl == null)
-                    lbl = String.format("%04d", l);
+                    lbl = String.format(Locale.US, "%04d", l);
                 else if (lbl.length() > 4)
                     lbl = lbl.substring(0, 2) + "..";
-                res += String.format(wrd, p, lbl, m[l], (short) m[l], Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l]));
-                res += "\n";
+                res.append(String.format(wrd, p, lbl, m[l],/*TODO*/ (short) m[l], Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l])));
+                res.append("\n");
             }
             for (; i < height - 3; ++i) {
-                res += "\n";
+                res.append("\n");
             }
-            return res;
+            return res.toString();
         }
 
         public String getAll(int mStart, int width, int height) {
             int start = 0;
-            String res = "   Memory                               | CPU Registers\n";
-            res += MEM_HEADER + "| " + REG_HEADER + "\n";
-            res += MEM_LINES + "|" + REG_LINES + "\n";
+            StringBuilder res = new StringBuilder("   Memory                               | CPU Registers\n");
+            res.append(MEM_HEADER + "| " + REG_HEADER + "\n");
+            res.append(MEM_LINES + "|" + REG_LINES + "\n");
             String[] names = getRegsNames2();
             int[] vals = getRegsValues();
             int l;
@@ -432,24 +473,24 @@ public abstract class Computer {
                 logI = i - names.length - 2;
                 lbl = c.memLabels.get(l);
                 if (lbl == null)
-                    lbl = String.format("%04d", l);
+                    lbl = String.format(Locale.US, "%04d", l);
                 else if (lbl.length() > 4)
                     lbl = lbl.substring(0, 2) + "..";
-                res += String.format(wrd, p, lbl, m[l], (short) m[l], Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l]));
+                res.append(String.format(wrd, p, lbl, m[l], (short) m[l], Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l])));
                 if (i < names.length)
-                    res += String.format(" | " + reg, names[i], vals[i], (short) vals[i], Utils.intToPrintableCharString(vals[i]));
+                    res.append(String.format(" | " + reg, names[i], vals[i], (short) vals[i], Utils.intToPrintableCharString(vals[i])));
                 else if (i == names.length || i == names.length + 2)
-                    res += " |-------------------";
+                    res.append(" |-------------------");
                 else if (i == names.length + 1)
-                    res += " | Logs:";
+                    res.append(" | Logs:");
                 else if (c.logger.size() != 0 && logI < c.logger.size())
-                    res += " | " + c.logger.get((c.logger.size() - maxLog < 0 ? 0 : c.logger.size() - maxLog) + logI);
-                res += "\n";
+                    res.append(" | ").append(c.logger.get((c.logger.size() - maxLog < 0 ? 0 : c.logger.size() - maxLog) + logI));
+                res.append("\n");
             }
             for (; i < height - 3; ++i) {
-                res += "\n";
+                res.append("\n");
             }
-            return res;
+            return res.toString();
         }
 
     }

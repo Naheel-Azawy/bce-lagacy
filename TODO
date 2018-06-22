@@ -1,4 +1,4 @@
--class simulator.Simulator:
+-KO-class simulator.Simulator:
     --contains an instance of a Computer
     --connectStreamTo[Registers, Memory, Logs, Src, Terminal]
 -OK-class instructions.Intruction(String name, int bin, bool memory, bool indirect, String descryption)
@@ -13,7 +13,7 @@
     --getInstructionSet
 -OK-class simulator.Memory:
     --can take a map of labels (int to string)
--class ui.Console:
+-OK-class ui.Console:
     --takes a Simulator, input and output streams
     --works as a commandline interface, can be connected to any of the Simulator streams
 -class Main:

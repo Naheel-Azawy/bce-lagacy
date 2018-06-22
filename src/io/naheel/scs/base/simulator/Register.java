@@ -1,4 +1,4 @@
-package simulator;
+package io.naheel.scs.base.simulator;
 
 public class Register {
 

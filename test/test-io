@@ -18,6 +18,9 @@ lda s3Adr
 sta printPtr
 bsa print
 
+; print new line
+bsa println
+
 hlt
 
 s1, str "hello, what's your name? "
@@ -27,6 +30,13 @@ s2Adr, adr s2
 s3, 0
 org +10
 s3Adr, adr s3
+
+; print a new line
+println, nop
+lda nln
+out
+bun println I
+nln, chr '\n'
 
 ; print a string in printPtr
 printPtr, 0

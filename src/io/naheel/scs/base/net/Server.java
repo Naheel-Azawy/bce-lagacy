@@ -1,4 +1,4 @@
-package app;
+package io.naheel.scs.base.net;
 
 import java.io.IOException;
 import java.io.PrintStream;
@@ -6,16 +6,14 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
 
-import computers.ComputerAC;
-import simulator.Computer;
-
-import utils.Logger;
+import io.naheel.scs.base.Console;
+import io.naheel.scs.base.simulator.Computer;
 
 public class Server {
 
     int port;
     ServerSocket socket;
-    Computer c;
+    Computer[] cPtr = new Computer[1];
 
     public Server(int port) {
         this.port = port;
@@ -28,27 +26,26 @@ public class Server {
                             Scanner s = new Scanner(client.getInputStream());
                             PrintStream p = new PrintStream(client.getOutputStream());
                             String[] args = s.nextLine().split("`");
-                            Console con = new Console(false, c, args, s, p);
-                            if (c == null)
-                                c = con.getComputer();
+                            Console con = new Console(false, cPtr, args, s, p);
                             con.run();
                         } catch (IOException e) {
-                            System.err.println(e);
+                            System.err.println(e.toString());
                         }
                 }).start();
             }
         } catch (IOException e) {
-            System.err.println(e);
+            System.err.println(e.toString());
         } finally {
             if (socket != null) {
                 try {
                     socket.close();
                 } catch (Exception e) {
-                    System.err.println(e);
+                    System.err.println(e.toString());
                 }
             }
         }
     }
+
 }
 
 

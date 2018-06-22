@@ -1,17 +1,18 @@
-package computers;
+package io.naheel.scs.base.computers;
 
-import utils.Logger;
+import io.naheel.scs.base.simulator.Instruction;
+import io.naheel.scs.base.simulator.InstructionSet;
 
-import simulator.Instruction;
-import simulator.InstructionSet;
-
-import simulator.Computer;
-import simulator.Memory;
-import simulator.Register;
+import io.naheel.scs.base.simulator.Computer;
+import io.naheel.scs.base.simulator.Memory;
+import io.naheel.scs.base.simulator.Register;
 
 public class ComputerBen extends Computer {
 
-    public static final InstructionSet INSTURCTION_SET = new InstructionSet() {
+    public static final String NAME = "Ben's Computer";
+    public static final String DESCRIPTION = "Even simpler computer built by Ben Eater on a breadboard.\nhttps://www.youtube.com/user/eaterbc";
+
+    public static final InstructionSet INSTRUCTION_SET = new InstructionSet() {
             @Override
             public void init() {
                 add(new Instruction("NOP", 0x00, 0, "No operation"));
@@ -50,19 +51,19 @@ public class ComputerBen extends Computer {
 
             @Override
             public int[] getRegsValues() {
-                return new int[] { A.getValue(), B.getValue(), ALU.getValue(), OUT.getValue(), PC.getValue(), IR.getValue(), MAR.getValue(), (CF ? 1 : 0), (ZF ? 1 : 0), SC, (E ? 1 : 0), (S ? 1 : 0) };
+                return new int[] { A.getValue(), B.getValue(), ALU.getValue(), OUT.getValue(), PC.getValue(), IR.getValue(), MAR.getValue(), (CF ? 1 : 0), (ZF ? 1 : 0), SC, (S ? 1 : 0) };
             }
 
         };
 
     private Register A, B, ALU, OUT, PC, IR, MAR;
-    private boolean E, S, CF, ZF;
+    private boolean S, CF, ZF;
     private byte SC;
     private boolean T0, T1, T2, T3, T4;
     private boolean LDA, ADD, SUB, STA, LDI, JMP, JC, JZ, OUTI, HLT;
 
     public ComputerBen() {
-        super("Ben's Computer", "Even simpler computer built by Ben Eater on a breadboard.\nhttps://www.youtube.com/user/eaterbc");
+        super(NAME, DESCRIPTION);
         setupDataUnit();
         M = new Memory(16, 8);
         M.setAR(MAR);
@@ -275,7 +276,7 @@ public class ComputerBen extends Computer {
 
     @Override
     public InstructionSet getInstructionSet() {
-        return INSTURCTION_SET;
+        return INSTRUCTION_SET;
     }
 
     @Override

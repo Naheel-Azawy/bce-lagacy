@@ -1,18 +1,6 @@
-top, LDA x
-SUB one
-JC continue
-
-LDA product
-OUT
-HLT
-
-continue, STA x
-LDA product
-ADD y
-STA product
-JMP top
-
-x, 2
-y, 3
-product, 0
-one, 1
+lda a
+add b
+out
+hlt
+a, 5
+b, 2

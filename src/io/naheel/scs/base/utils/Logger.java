@@ -1,4 +1,4 @@
-package utils;
+package io.naheel.scs.base.utils;
 
 import java.util.ArrayList;
 import java.util.List;

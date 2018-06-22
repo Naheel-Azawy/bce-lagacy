@@ -1,23 +1,23 @@
-package app;
+package io.naheel.scs.base;
 
-import java.awt.EventQueue;
 import java.io.PrintStream;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
-import javax.swing.UIManager;
+import io.naheel.scs.MainFrame;
+import io.naheel.scs.Updater;
+import io.naheel.scs.base.assembler.Assembler;
 
-import assembler.Assembler;
+import io.naheel.scs.base.computers.ComputerAC;
+import io.naheel.scs.base.computers.Computers;
 
-import computers.ComputerAC;
-import computers.ComputerBen;
+import io.naheel.scs.base.net.Client;
+import io.naheel.scs.base.net.Server;
+import io.naheel.scs.base.simulator.Computer;
 
-import gui.MainFrame;
-
-import simulator.Computer;
-
-import utils.Logger;
-import utils.Utils;
+import io.naheel.scs.base.utils.Info;
+import io.naheel.scs.base.utils.Logger;
+import io.naheel.scs.base.utils.Utils;
 
 public class Console {
 
@@ -28,7 +28,7 @@ public class Console {
         + "log               show logs. `log connect` to keep connected to logs updates\n"
         + "all               show memory, register, and logs. `all connect` to keep connected updates\n"
         + "arch-help         help for the current computer architecture\n"
-        + "set-arch          selects the computer architecture [AC, BEN]\n"
+        + "set-arch          selects the computer architecture [" + Computers.STR + "]\n"
         + "load              load a file\n"
         + "load-type         load a file after selecting the type (e.g. `load-type AC file`)\n"
         + "reload            reload the file\n"
@@ -40,6 +40,8 @@ public class Console {
         + "tick, t           tick the computer clock\n"
         + "stop, halt, hlt   halt the computer\n"
         + "terminal, trm     start the I/O terminal\n"
+        + "echo              print to screen\n"
+        + "clear-con         clear the console\n"
         + "about             program details\n"
         + "update            update the program\n"
         + "help, h, ?        show this help\n"
@@ -47,7 +49,7 @@ public class Console {
 
     private static final String CMD_HELP = "Usage: java -jar scs.jar [options] [file]\n"
         + "Options:\n"
-        + "  -a, --architecture=ARCH        selects the computer archetecture [AC, BEN]\n"
+        + "  -a, --architecture=ARCH        selects the computer archetecture [" + Computers.STR + "]\n"
         + "  -t, --file-type=TYPE           selects the input file type [ASM (default), HEX, BIN, DEC]\n"
         + "  -asm, --assemble               only assemble and output the result\n"
         + "  -asmf, --assembly-format=TYPE  selects the assembly output format [HEX (default), BIN, DEC]\n"
@@ -59,10 +61,7 @@ public class Console {
         + "  -v, --version                  output version information and exit\n"
         + "  -h, -?, --help                 display this help and exit\n";
 
-    Computer c;
-    Logger logger;
-    Computer.Formatter formatter;
-    int[] m;
+    Computer[] cPtr = null;
     boolean trmLock = false;
     boolean promp = true;
 
@@ -82,16 +81,18 @@ public class Console {
         this(null, args, in, out);
     }
 
-    public Console(Computer computer, String[] args, Scanner in, PrintStream out) {
-        this(true, computer, args, in, out);
+    public Console(Computer[] computerPtr, String[] args, Scanner in, PrintStream out) {
+        this(true, computerPtr, args, in, out);
     }
 
-    public Console(boolean run, Computer computer, String[] args, Scanner in, PrintStream out) {
+    public Console(boolean run, Computer[] computerPtr, String[] args, Scanner in, PrintStream out) {
 
         setSize();
-        this.c = computer;
+        this.cPtr = computerPtr == null ? new Computer[1] : computerPtr;
         this.in = in;
         this.out = out;
+
+        Computer c = getComputer();
 
         String o;
         for (int i = 0; i < args.length; ++i) {
@@ -131,15 +132,13 @@ public class Console {
                     return;
                 case "-architecture":
                 case "a":
-                    if (computer != null) break;
-                    switch (args[++i].toUpperCase()) {
-                    case "AC":
-                        c = new ComputerAC();
-                        break;
-                    case "BEN":
-                        c = new ComputerBen();
-                        break;
+                    if (c != null) break;
+                    Computer newC = Computers.strToComputer(args[++i]);
+                    if (newC == null) {
+                        out.println("Please specify one architecture [" + Computers.STR + "]");
+                        System.exit(1);
                     }
+                    c = newC;
                     break;
                 case "-file-type":
                 case "t":
@@ -223,15 +222,15 @@ public class Console {
 
         if (c == null)
             c = new ComputerAC();
-        m = c.getMemory();
-        logger = c.getLogger();
-        formatter = c.getFormatter();
+        setComputer(c);
 
         if (run) run();
 
     }
 
     public void run() {
+
+        Computer c = getComputer();
 
         if (asm != 'n') {
             int[] arr = Assembler.assemble(c.getInstructionSet(), Utils.readFile(filePath).split("\n"));
@@ -270,9 +269,10 @@ public class Console {
         }
 
         if (gui) {
-            startGui();
+            MainFrame.startGui(this);
         } else {
             if (showMem != -1) {
+                int[] m = c.getMemory();
                 if (showMem >= m.length) {
                     out.println("Memory location should be between 0 and " + (m.length - 1));
                     System.exit(1);
@@ -285,6 +285,10 @@ public class Console {
             }
         }
 
+    }
+
+    public void runAsync() {
+        new Thread(this::run).start();
     }
 
     public void setSize() {
@@ -308,16 +312,12 @@ public class Console {
         System.exit(1);
     }
 
-    public Computer getComputer() {
-        return c;
-    }
-
     private void cli(boolean keepRunning) {
         try {
             String input;
             boolean exit;
             //if (promp) out.print("> ");
-            while (c.isRunning() || keepRunning) {
+            while (getComputer().isRunning() || keepRunning) {
                 input = in.nextLine();
                 if (input.startsWith("__DIM")) {
                     try {
@@ -329,7 +329,7 @@ public class Console {
                     //if (promp) out.print("> ");
                     promp = true;
                     exit = exec(input);
-                    if (exit) break;
+                    if (exit) System.exit(0);
                 }
             }
         } catch (NoSuchElementException ignored) {
@@ -350,13 +350,37 @@ public class Console {
         }
         String[] input = cmd.trim().split(" ");
         if (input.length == 0) return false;
+        Computer c = getComputer();
+        Computer.Formatter formatter = c.getFormatter();
+        Logger logger = c.getLogger();
         switch (input[0]) {
         case "":
+            break;
+        case "echo":
+            if (input.length == 1) {
+                out.println();
+            } else {
+                for (int i = 1; i < input.length; ++i) {
+                    out.print(input[i]);
+                    out.print(' ');
+                }
+                out.println();
+            }
+            break;
+        case "clear-con":
+            int p = 0;
+            if (input.length == 2) {
+                try {
+                    p = Integer.parseInt(input[1]);
+                } catch (NumberFormatException ignored) {}
+            }
+            for (int i = 0; i < height - p - 1; ++i)
+                out.println();
             break;
         case "set-mem-start":
             try {
                 c.mStart = Integer.parseInt(input[1]);
-                int max = m.length - height + 4;
+                int max = c.getMemory().length - height + 4;
                 if (c.mStart < 0) {
                     c.mStart = 0;
                 } else if (c.mStart > max) {
@@ -371,7 +395,7 @@ public class Console {
             out.print(formatter.getMemory(c.mStart, width, height));
             if (input.length == 2 && input[1].equals("connect")) {
                 promp = false;
-                c.connectOnUpdate(f -> out.print(formatter.getMemory(c.mStart, width, height)));
+                c.connectOnUpdate(f -> out.print(formatter.getMemory(getComputer().mStart, width, height)));
             }
             break;
         case "reg":
@@ -385,7 +409,7 @@ public class Console {
             out.print(formatter.getAll(c.mStart, width, height));
             if (input.length == 2 && input[1].equals("connect")) {
                 promp = false;
-                c.connectOnUpdate(f -> out.print(formatter.getAll(c.mStart, width, height)));
+                c.connectOnUpdate(f -> out.print(formatter.getAll(getComputer().mStart, width, height)));
             }
             break;
         case "log":
@@ -394,7 +418,13 @@ public class Console {
             }
             if (input.length == 2 && input[1].equals("connect")) {
                 promp = false;
-                logger.connect(log -> out.println(log));
+                logger.connect(log -> {
+                        if (log == null)
+                            for (int i = 0; i < height; ++i)
+                                out.println();
+                        else
+                            out.println(log);
+                    });
             }
             break;
         case "arch-help":
@@ -402,20 +432,17 @@ public class Console {
             break;
         case "set-arch":
             if (input.length != 2) {
-                out.println("Please specify one architecture [AC, BEN]");
+                out.println("Please specify one architecture [" + Computers.STR + "]");
                 break;
             }
-            switch (input[1].toUpperCase()) {
-            case "AC":
-                c = new ComputerAC();
-                break;
-            case "BEN":
-                c = new ComputerBen();
+            Computer newC = Computers.strToComputer(input[1]);
+            if (newC == null) {
+                out.println("Please specify one architecture [" + Computers.STR + "]");
                 break;
             }
-            m = c.getMemory();
-            logger = c.getLogger();
-            formatter = c.getFormatter();
+            c = newC.from(c);
+            setComputer(c);
+            c.runListeners();
             break;
         case "load":
             if (input.length == 2) {
@@ -526,11 +553,13 @@ public class Console {
             break;
         case "terminal":
         case "trm":
-            for (int i = 0; i < height; ++i)
-                out.println();
+            if (!c.isIOSupported()) {
+                out.println("I/O is not supported in this architecture");
+                break;
+            }
             c.connectOnOut(ch -> {
                     trmLock = true;
-                    if (c.isIoCleared()) {
+                    if (getComputer().isIoCleared()) {
                         for (int i = 0; i < height; ++i)
                             out.println();
                     } else if (ch != '\0') {
@@ -559,15 +588,12 @@ public class Console {
         return false;
     }
 
-    public void startGui() {
-        EventQueue.invokeLater(() -> {
-                try {
-                    UIManager.setLookAndFeel("javax.swing.plaf.metal.MetalLookAndFeel");
-                    new MainFrame(c).setVisible(true);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+    public Computer getComputer() {
+        return cPtr[0];
+    }
+
+    public void setComputer(Computer c) {
+        this.cPtr[0] = c;
     }
 
 }
