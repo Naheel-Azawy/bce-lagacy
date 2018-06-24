@@ -1,6 +1,8 @@
 lda a
 add b
+sta c
 out
 hlt
 a, 5
 b, 2
+c, 0

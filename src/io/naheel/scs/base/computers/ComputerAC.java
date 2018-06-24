@@ -98,7 +98,7 @@ public class ComputerAC extends Computer {
         regSet.add(DR = new Register(16, "DR", "Data Register"));
         regSet.add(AC = new Register(16, "AC", "Accumulator"));
         regSet.add(IR = new Register(16, "IR", "Instruction Register"));
-        regSet.add(TR = new Register(16, "TR", "Temprory Register"));
+        regSet.add(TR = new Register(16, "TR", "Temporary Register"));
         regSet.add(INPR = new Register(8, "INPR", "Input Register"));
         regSet.add(OUTR = new Register(8, "OUTR", "Output Register"));
         regSet.add("SC", "Sequence Counter");
@@ -284,7 +284,7 @@ public class ComputerAC extends Computer {
         // CIR
         else if (r && B7) {
             logger.log("D7I'T3B7: AC <- shr(AC), AC(15) <- E, E <- AC(0), SC <- 0");
-            int value = AC.getValue(); // TODO:
+            int value = AC.getValue();
             boolean lsb = (value & 1) != 0;
             value >>= 1;
             if (E)

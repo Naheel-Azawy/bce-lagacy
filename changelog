@@ -1,3 +1,11 @@
+2.00
+Reorganized packages
+Client-Server option
+CLI rebuilt
+Tmux option
+Ben's computer
+Other fixes and improvements
+
 1.05
 Accept any white spaces
 Restrict scaling to be between 5 and 0.25

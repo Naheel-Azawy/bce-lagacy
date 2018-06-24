@@ -416,8 +416,11 @@ public abstract class Computer {
             String[] names = getRegsNames2();
             int[] vals = getRegsValues();
             int i;
+            int extentionShift = 64 /* sizeof(int) */ - c.M.getWordSize();
+            int extendedReg;
             for (i = 0; i < names.length; ++i) {
-                res.append(String.format(reg, names[i], vals[i], (short) vals[i], Utils.intToPrintableCharString(vals[i])));
+                extendedReg = (vals[i] << extentionShift) >> extentionShift; // extending the MSB
+                res.append(String.format(reg, names[i], vals[i], extendedReg, Utils.intToPrintableCharString(vals[i])));
                 res.append("\n");
             }
             for (; i < height - 3; ++i) {
@@ -435,6 +438,8 @@ public abstract class Computer {
             String lbl;
             int pc = c.getPC();
             int i;
+            int extentionShift = 64 /* sizeof(int) */ - c.M.getWordSize();
+            int extendedM;
             for (i = 0; (i < height - 3 || height == -1) && i < m.length; ++i) {
                 l = i + start + mStart;
                 p = l == pc - 1 ? PNT : NO_PNT;
@@ -443,7 +448,8 @@ public abstract class Computer {
                     lbl = String.format(Locale.US, "%04d", l);
                 else if (lbl.length() > 4)
                     lbl = lbl.substring(0, 2) + "..";
-                res.append(String.format(wrd, p, lbl, m[l],/*TODO*/ (short) m[l], Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l])));
+                extendedM = (m[l] << extentionShift) >> extentionShift; // extending the MSB
+                res.append(String.format(wrd, p, lbl, m[l], extendedM, Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l])));
                 res.append("\n");
             }
             for (; i < height - 3; ++i) {
@@ -467,6 +473,9 @@ public abstract class Computer {
             String lbl;
             int pc = c.getPC();
             int i;
+            int extentionShift = 64 /* sizeof(int) */ - c.M.getWordSize();
+            int extendedReg;
+            int extendedM;
             for (i = 0; (i < height - 3 || height == -1) && i < m.length; ++i) {
                 l = i + start + mStart;
                 p = l == pc - 1 ? PNT : NO_PNT;
@@ -476,10 +485,12 @@ public abstract class Computer {
                     lbl = String.format(Locale.US, "%04d", l);
                 else if (lbl.length() > 4)
                     lbl = lbl.substring(0, 2) + "..";
-                res.append(String.format(wrd, p, lbl, m[l], (short) m[l], Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l])));
-                if (i < names.length)
-                    res.append(String.format(" | " + reg, names[i], vals[i], (short) vals[i], Utils.intToPrintableCharString(vals[i])));
-                else if (i == names.length || i == names.length + 2)
+                extendedM = (m[l] << extentionShift) >> extentionShift; // extending the MSB
+                res.append(String.format(wrd, p, lbl, m[l], extendedM, Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l])));
+                if (i < names.length) {
+                    extendedReg = (vals[i] << extentionShift) >> extentionShift; // extending the MSB
+                    res.append(String.format(" | " + reg, names[i], vals[i], extendedReg, Utils.intToPrintableCharString(vals[i])));
+                } else if (i == names.length || i == names.length + 2)
                     res.append(" |-------------------");
                 else if (i == names.length + 1)
                     res.append(" | Logs:");

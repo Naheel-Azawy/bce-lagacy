@@ -37,10 +37,11 @@ public class Console {
         + "clear-reg         clears the registers\n"
         + "clear-io          clears the I/O\n"
         + "run               run the computer\n"
+        + "run-sync          run the computer synchronously (block input)\n"
         + "tick, t           tick the computer clock\n"
         + "stop, halt, hlt   halt the computer\n"
         + "terminal, trm     start the I/O terminal\n"
-        + "echo              print to screen\n"
+        + "echo              print to the screen. `$M[i]` to print a memory value at address `i`\n"
         + "clear-con         clear the console\n"
         + "about             program details\n"
         + "update            update the program\n"
@@ -54,8 +55,6 @@ public class Console {
         + "  -asm, --assemble               only assemble and output the result\n"
         + "  -asmf, --assembly-format=TYPE  selects the assembly output format [HEX (default), BIN, DEC]\n"
         + "  -nw, --no-window-system        use command line interface\n"
-        + "  -m, --memory-location=ADDRESS  quit after finishing execution and only print that memory location\n"
-        + "  -q, --quiet                    quit after finishing execution\n"
         + "  --server=PORT                  start in server mode\n"
         + "  --client=PORT [CMD]            start in client mode\n"
         + "  -v, --version                  output version information and exit\n"
@@ -73,9 +72,8 @@ public class Console {
     String filePath = null;
     char fileType = 'a';
     boolean gui = true;
-    boolean q = false;
-    int showMem = -1;
     char asm = 'n';
+    String execCmd = null;
 
     public Console(String[] args, Scanner in, PrintStream out) {
         this(null, args, in, out);
@@ -183,19 +181,8 @@ public class Console {
                 case "nw":
                     gui = false;
                     break;
-                case "-memory-location":
-                case "m":
-                    try {
-                        showMem = Integer.parseInt(args[++i]);
-                        gui = false;
-                        q = true;
-                    } catch (Exception e) {
-                        wrongInput();
-                    }
-                    break;
-                case "-quiet":
-                case "q":
-                    q = true;
+                case "exec":
+                    execCmd = args[++i];
                     break;
                 case "-version":
                 case "v":
@@ -268,21 +255,14 @@ public class Console {
             }
         }
 
+        if (execCmd != null)
+            exec(execCmd);
+
         if (gui) {
             MainFrame.startGui(this);
         } else {
-            if (showMem != -1) {
-                int[] m = c.getMemory();
-                if (showMem >= m.length) {
-                    out.println("Memory location should be between 0 and " + (m.length - 1));
-                    System.exit(1);
-                }
-                c.start();
-                out.println(m[showMem]);
-            } else {
-                c.startEnable();
-                cli(!q);
-            }
+            c.startEnable();
+            cli();
         }
 
     }
@@ -312,12 +292,10 @@ public class Console {
         System.exit(1);
     }
 
-    private void cli(boolean keepRunning) {
+    private void cli() {
         try {
             String input;
-            boolean exit;
-            //if (promp) out.print("> ");
-            while (getComputer().isRunning() || keepRunning) {
+            while (true) {
                 input = in.nextLine();
                 if (input.startsWith("__DIM")) {
                     try {
@@ -326,33 +304,28 @@ public class Console {
                         height = Integer.parseInt(sp[2]);
                     } catch (Exception ignored) {}
                 } else {
-                    //if (promp) out.print("> ");
                     promp = true;
-                    exit = exec(input);
-                    if (exit) System.exit(0);
+                    exec(input);
                 }
             }
         } catch (NoSuchElementException ignored) {
         }
     }
 
-    public boolean exec(String cmd) {
+    public void exec(String cmd) {
         if (cmd.contains(";")) {
             String[] cmds = cmd.split(";");
-            boolean res = false;
-            boolean ret;
             for (String c : cmds) {
-                ret = exec(c);
-                if (ret)
-                    res = true;
+                exec(c);
             }
-            return res;
+            return;
         }
         String[] input = cmd.trim().split(" ");
-        if (input.length == 0) return false;
+        if (input.length == 0) return;
         Computer c = getComputer();
         Computer.Formatter formatter = c.getFormatter();
         Logger logger = c.getLogger();
+        String tmp;
         switch (input[0]) {
         case "":
             break;
@@ -361,8 +334,22 @@ public class Console {
                 out.println();
             } else {
                 for (int i = 1; i < input.length; ++i) {
-                    out.print(input[i]);
-                    out.print(' ');
+                    if (input[i].charAt(0) == '$') {
+                        tmp = input[i].substring(1);
+                        if (tmp.startsWith("M[") && tmp.charAt(tmp.length()-1) == ']') {
+                            tmp = tmp.substring(2, tmp.length()-1);
+                            try {
+                                out.print(c.getMemory()[Integer.parseInt(tmp)]);
+                            } catch (Exception e) {
+                                out.println("Error printing memory location");
+                            }
+                        } else {
+                            out.println("Unknown variable");
+                        }
+                    } else {
+                        out.print(input[i]);
+                        out.print(' ');
+                    }
                 }
                 out.println();
             }
@@ -499,6 +486,11 @@ public class Console {
             c.clearIO();
             c.startAsync();
             break;
+        case "run-sync":
+            c.clearReg();
+            c.clearIO();
+            c.start();
+            break;
         case "tick":
         case "t":
             c.startEnable();
@@ -580,12 +572,10 @@ public class Console {
             break;
         case "exit":
         case "e":
-            out.print('\0');
-            return true;
+            System.exit(0);
         default:
             out.println("Invalid input");
         }
-        return false;
     }
 
     public Computer getComputer() {

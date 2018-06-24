@@ -14,7 +14,7 @@ if [ "$P" = "" ]; then
     P="5555"
 fi
 if [ "$F" = "" ]; then
-    F=".scs_tmp"
+    F="~/.scs_tmp"
     rm -f $F
     touch $F
 fi
@@ -41,15 +41,15 @@ S="SCS"
 RUN="sleep 0.5; java -jar scs.jar --client $P "
 tmux new-session -d -s $S -n "${S}_server"
 tmux send-keys "java -jar scs.jar --server $P; exit" Enter
-tmux new-window -s $S -n "${S}_clients"
+tmux new-window -n "${S}_clients"
 tmux send-keys "$EDITOR $F; exit" Enter
 tmux splitw -v -p 25
-tmux send-keys "$RUN \"echo Terminal:; clear-con 1; trm\"; exit" Enter
+tmux send-keys "$RUN \"echo Terminal; clear-con 1; trm\"; exit" Enter
 tmux splitw -v -p 10
-tmux send-keys "$RUN \"echo Console:; clear-con 1; $C load $F\"; exit" Enter
+tmux send-keys "$RUN \"echo Console; clear-con 1; $C load $F\"; exit" Enter
 tmux selectp -t 1
 tmux splitw -h -p 50
-tmux send-keys "$RUN \"echo Logs:; clear-con 2; log connect\"; exit" Enter
+tmux send-keys "$RUN \"echo Logs; clear-con 2; log connect\"; exit" Enter
 tmux selectp -t 0
 tmux splitw -h -p 60
 tmux send-keys "$RUN \"clear-con; reg connect\"; exit" Enter
