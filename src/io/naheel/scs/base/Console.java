@@ -30,7 +30,7 @@ public class Console {
         + "arch-help         help for the current computer architecture\n"
         + "set-arch          selects the computer architecture [" + Computers.STR + "]\n"
         + "load              load a file\n"
-        + "load-type         load a file after selecting the type (e.g. `load-type AC file`)\n"
+        + "load-type         load a file after selecting the type (e.g. `load-type BIN file`)\n"
         + "reload            reload the file\n"
         + "clear             halt the computer and clear everything\n"
         + "clear-mem         clears the memory\n"
@@ -441,7 +441,7 @@ public class Console {
         case "load-type":
             if (input.length == 3) {
                 int fileType = -1;
-                switch (input[1]) {
+                switch (input[1].toLowerCase()) {
                 case "ASM":
                     fileType = Computer.TYPE_ASM;
                     break;

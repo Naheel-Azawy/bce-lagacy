@@ -152,7 +152,9 @@ public class ComputerBen extends Computer {
             incSC();
         } else if (SUB && T4) {
             logger.log("SUB T4: SU ΣO AI FI");
-            int res = A.getValue() - B.getValue();
+            int res = B.getValue();
+            res = (~res + 1) & B.getMask();
+            res += A.getValue();
             ALU.load(res % A.getMaxValue());
             CF = (res & A.getMaxValue()) != 0;
             ZF = res == 0;

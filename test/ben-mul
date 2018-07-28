@@ -1,0 +1,18 @@
+top, LDA x
+SUB one
+JC continue
+
+LDA product
+OUT
+HLT
+
+continue, STA x
+LDA product
+ADD y
+STA product
+JMP top
+
+one, 1
+product, 0
+x, 5
+y, 3
