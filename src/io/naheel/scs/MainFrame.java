@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.prefs.Preferences;
+import java.net.URI;
 
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -80,16 +81,19 @@ public class MainFrame extends JFrame {
     private static final Color LIGHT = new Color(0xE8E8E7);
     private static final Color DARK = new Color(0x252A2C);
     private static final Color DARKER = new Color(0x1E1E1E);
-    private static final String FONT_MONO = "Courier New";
-    private static final String FONT_NORMAL = "Arial";
+    private static final Color VERY_DARK = new Color(0x101010);
+    private static final Color BLACK = new Color(0x000000);
+    private static final String FONT_MONO = getAnyFont("DejaVu Sans Mono", "Liberation Mono", "Courier New");
+    private static final String FONT_NORMAL = getAnyFont("Liberation Sans", "Arial");
     private static final int TXT_SIZE = 18;
     private static final int EDITOR_TXT_SIZE = 20;
     private static final int W = 1500, H = 1000;
     private static final String[] P_TYPES = { "Assembly", "Hexadecimal", "Decimal", "Binary" };
     private static final String KEY_SCALE = "scale";
-    private static final String KEY_LIGHT = "is_light";
+    private static final String KEY_THEME = "theme";
     private static final int MEM_LEN = 20;
     private static final int MEM_LINES = MEM_LEN + 5;
+    private static final boolean ALLOW_UPDATE = false;
 
     public static void startGui(Console con) {
         EventQueue.invokeLater(() -> {
@@ -108,7 +112,7 @@ public class MainFrame extends JFrame {
     private Color bgColor2;
     private Color txtColor;
     private int txtSize, editorTxtSize;
-    private boolean isLight = false;
+    private int theme = 1;
     private Preferences prefs;
 
     private Computer c;
@@ -120,13 +124,13 @@ public class MainFrame extends JFrame {
         this.c = c;
         this.prefs = Preferences.userNodeForPackage(MainFrame.class);
         this.scale = prefs.getFloat(KEY_SCALE, 1f);
-        this.isLight = prefs.getBoolean(KEY_LIGHT, false);
+        this.theme = prefs.getInt(KEY_THEME, this.theme);
         setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
         addWindowListener(new WindowAdapter() {
                 @Override
                 public void windowClosing(WindowEvent e) {
                     prefs.putFloat(KEY_SCALE, scale);
-                    prefs.putBoolean(KEY_LIGHT, isLight);
+                    prefs.putInt(KEY_THEME, theme);
                     System.exit(0);
                 }
             });
@@ -218,7 +222,7 @@ public class MainFrame extends JFrame {
 
         setContentPane(p);
         updateSize();
-        setTheme(isLight);
+        setTheme(theme);
         setLocationRelativeTo(null);
         Utils.runAfter(() -> t.src.tp.requestFocus(), 500);
     }
@@ -263,18 +267,26 @@ public class MainFrame extends JFrame {
     }
 
     public void toggleTheme() {
-        setTheme(isLight = !isLight);
+        setTheme(theme = (theme + 1) % 3);
     }
 
-    public void setTheme(boolean light) {
-        if (light) {
+    public void setTheme(int thm) {
+        switch (thm) {
+        case 0:
             bgColor = Color.WHITE;
             bgColor2 = LIGHT;
             txtColor = Color.BLACK;
-        } else {
+            break;
+        case 1:
             bgColor = DARKER;
             bgColor2 = DARK;
             txtColor = Color.WHITE;
+            break;
+        case 2:
+            bgColor = BLACK;
+            bgColor2 = VERY_DARK;
+            txtColor = Color.WHITE;
+            break;
         }
         for (Themeable t : themeables)
             t.theme();
@@ -927,10 +939,10 @@ public class MainFrame extends JFrame {
         private static final long serialVersionUID = 1L;
 
         JPanel p;
-        Btn thm, archAbout, update, about;
+        Btn thm, archAbout, update, page, about;
         TxtF scaleF;
         JComboBox<String> archs;
-        Lbl thmL, scaleL, archsL, archAboutL, updateL, aboutL;
+        Lbl thmL, scaleL, archsL, archAboutL, updateL, pageL, aboutL;
 
         MoreDialog(Frame owner) {
             super(owner);
@@ -950,8 +962,13 @@ public class MainFrame extends JFrame {
             p.add(archAboutL = new Lbl("Architecture details:"));
             p.add(archAbout = new Btn("Details"));
 
-            p.add(updateL = new Lbl("Updates:"));
-            p.add(update = new Btn("Check for updates"));
+            if (ALLOW_UPDATE) {
+                p.add(updateL = new Lbl("Updates:"));
+                p.add(update = new Btn("Check for updates"));
+            }
+
+            p.add(pageL = new Lbl("Homepage/Downloads:"));
+            p.add(page = new Btn("GitHub page"));
 
             p.add(aboutL = new Lbl("About:"));
             p.add(about = new Btn("About"));
@@ -978,7 +995,7 @@ public class MainFrame extends JFrame {
                                               d.dispose();
                                       }));
                 });
-            update.addActionListener(e -> {
+            if (update != null) update.addActionListener(e -> {
                     progress(MainFrame.this, () -> Updater.getLatestVersion(), latestVersion -> {
                             final JDialog d = new JDialog(this);
                             if (latestVersion < 0) {
@@ -1003,6 +1020,15 @@ public class MainFrame extends JFrame {
                                               }));
                         });
                 });
+            page.addActionListener(e -> {
+                    final String U = "https://github.com/Naheel-Azawy/Simple-Computer-Simulator/blob/master/README.md";
+                    try {
+                        java.awt.Desktop.getDesktop().browse(new URI(U));
+                    } catch (Exception e2) {
+                        JDialog d = new JDialog(this);
+                        showMessageDialog(d, "Could not open URL: " + U, "Error!", JOptionPane.PLAIN_MESSAGE, null, new Btn("OK", e1 -> d.dispose()));
+                    }
+                });
             about.addActionListener(e -> {
                     final JDialog d = new JDialog(this);
                     showMessageDialog(d, Info.ABOUT, "About", JOptionPane.PLAIN_MESSAGE, new ImageIcon(ICON),
@@ -1019,11 +1045,13 @@ public class MainFrame extends JFrame {
             scaleL.theme();
             archsL.theme();
             archAboutL.theme();
-            updateL.theme();
+            if (updateL != null) updateL.theme();
+            pageL.theme();
             aboutL.theme();
             thm.theme();
             archAbout.theme();
-            update.theme();
+            if (update != null) update.theme();
+            page.theme();
             about.theme();
             scaleF.theme();
             theme();
@@ -1052,6 +1080,17 @@ public class MainFrame extends JFrame {
 
     private void addTheme(Themeable t) {
         themeables.add(t);
+    }
+
+    public static String getAnyFont(String... fonts) {
+        for (String f : java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getAvailableFontFamilyNames()) {
+            for (String font : fonts) {
+                if (f.equals(font)) {
+                    return f;
+                }
+            }
+        }
+        return null;
     }
 
 }
