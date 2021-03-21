@@ -1,7 +1,7 @@
 # Simple Computer Simulator
 ![screenshot](./screenshots/gui-dark.png)
 Simulate simple computer architectures
-## Download (version 2.02)
+## Download (version 2.03)
 - [DOWNLOAD](https://raw.githubusercontent.com/Naheel-Azawy/Simple-Computer-Simulator/master/scs.jar) the jar
 - [DOWNLOAD](https://raw.githubusercontent.com/Naheel-Azawy/Simple-Computer-Simulator/master/extra/scs.exe) the Windows exe
 - `git clone https://github.com/Naheel-Azawy/Simple-Computer-Simulator.git`

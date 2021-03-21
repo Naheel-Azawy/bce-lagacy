@@ -89,6 +89,7 @@ public class MainFrame extends JFrame {
     private static final int EDITOR_TXT_SIZE = 20;
     private static final int W = 1500, H = 1000;
     private static final String[] P_TYPES = { "Assembly", "Hexadecimal", "Decimal", "Binary" };
+    private static final String[] DEC_TYPES = { "Signed", "Unsigned" };
     private static final String KEY_SCALE = "scale";
     private static final String KEY_THEME = "theme";
     private static final int MEM_LEN = 20;
@@ -118,6 +119,8 @@ public class MainFrame extends JFrame {
     private Computer c;
 
     private JComboBox<String> pType = new JComboBox<>(P_TYPES);
+    private JComboBox<String> decType = new JComboBox<>(DEC_TYPES);
+    private TxtF freqAvgF;
     private Txts t;
 
     public MainFrame(Computer c) {
@@ -138,7 +141,7 @@ public class MainFrame extends JFrame {
         setResizable(true);
 
         final Btn open, save, saveAs, run, tick, hlt, clr, more;
-        final TxtF freqF, freqAvgF;
+        final TxtF freqF;
 
         JPanel p = new JPanel();
         p.setLayout(new BorderLayout());
@@ -155,6 +158,19 @@ public class MainFrame extends JFrame {
         topL.add(tick = new Btn("Tick"));
         topL.add(hlt = new Btn("Halt"));
         topL.add(clr = new Btn("Clear"));
+
+        topR.add(new Lbl("Decimal type: "));
+        topR.add(decType);
+        decType.setSelectedIndex(0);
+        decType.addActionListener(e -> {
+                getComputer().getFormatter().signed = decType.getSelectedIndex() == 0;
+                this.updateTxts(getComputer().getFormatter());
+            });
+        addTheme(() -> {
+                decType.setBackground(bgColor);
+                decType.setForeground(txtColor);
+                decType.setFont(new Font(FONT_NORMAL, Font.PLAIN, txtSize));
+            });
         topR.add(new Lbl("Avg Freq (Hz): "));
         topR.add(freqAvgF = new TxtF(getFreq(), 4));
         topR.add(new Lbl("Freq (Hz): "));
@@ -208,15 +224,7 @@ public class MainFrame extends JFrame {
                 new MoreDialog(this).setVisible(true);
             });
 
-        getComputer().connectOnUpdate(formatter -> {
-                t.setReg(formatter.getRegisters(-1, -1));
-                t.setMem(formatter.getMemory(getComputer().mStart, -1, MEM_LINES));
-                if (!getComputer().isRunning())
-                    Utils.runAfter(() -> t.logS.setValue(t.logS.getMaximum()), 200);
-                if (getComputer().getAvgFrequency() > 0) {
-                    freqAvgF.setText(String.format("%.2f", getComputer().getAvgFrequency()));
-                }
-            });
+        getComputer().connectOnUpdate(this::updateTxts);
         getComputer().runListeners();
         t.setSrc(getComputer().getSource());
 
@@ -225,6 +233,16 @@ public class MainFrame extends JFrame {
         setTheme(theme);
         setLocationRelativeTo(null);
         Utils.runAfter(() -> t.src.tp.requestFocus(), 500);
+    }
+
+    private void updateTxts(Computer.Formatter formatter) {
+        t.setReg(formatter.getRegisters(-1, -1));
+        t.setMem(formatter.getMemory(getComputer().mStart, -1, MEM_LINES));
+        if (!getComputer().isRunning())
+            Utils.runAfter(() -> t.logS.setValue(t.logS.getMaximum()), 200);
+        if (getComputer().getAvgFrequency() > 0) {
+            freqAvgF.setText(String.format("%.2f", getComputer().getAvgFrequency()));
+        }
     }
 
     public Computer getComputer() {

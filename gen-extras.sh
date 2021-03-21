@@ -1,4 +1,4 @@
-LAUNCH4J="$HOME/GoodStuff/launch4j-3.11-linux-x64/launch4j/launch4j.jar"
+LAUNCH4J="/opt/launch4j/launch4j.jar"
 CONFIG_FILE="./extra/launch4j-config.xml"
 DIR=$(pwd)
 echo "<?xml version=\"1.0\" encoding=\"UTF-8\"?>

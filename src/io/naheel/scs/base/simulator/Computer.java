@@ -395,6 +395,7 @@ public abstract class Computer {
         private Computer c;
         private String reg, wrd;
         private String[] regsNames;
+        public boolean signed = true;
 
         public Formatter(Computer c, int wordSize) {
             this.c = c;
@@ -419,7 +420,10 @@ public abstract class Computer {
             int extentionShift = 64 /* sizeof(int) */ - c.M.getWordSize();
             int extendedReg;
             for (i = 0; i < names.length; ++i) {
-                extendedReg = (vals[i] << extentionShift) >> extentionShift; // extending the MSB
+                if (this.signed)
+                    extendedReg = (vals[i] << extentionShift) >> extentionShift; // extending the MSB
+                else
+                    extendedReg = vals[i];
                 res.append(String.format(reg, names[i], vals[i], extendedReg, Utils.intToPrintableCharString(vals[i])));
                 res.append("\n");
             }
@@ -448,7 +452,10 @@ public abstract class Computer {
                     lbl = String.format(Locale.US, "%04d", l);
                 else if (lbl.length() > 4)
                     lbl = lbl.substring(0, 2) + "..";
-                extendedM = (m[l] << extentionShift) >> extentionShift; // extending the MSB
+                if (this.signed)
+                    extendedM = (m[l] << extentionShift) >> extentionShift; // extending the MSB
+                else
+                    extendedM = m[l];
                 res.append(String.format(wrd, p, lbl, m[l], extendedM, Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l])));
                 res.append("\n");
             }
@@ -485,10 +492,16 @@ public abstract class Computer {
                     lbl = String.format(Locale.US, "%04d", l);
                 else if (lbl.length() > 4)
                     lbl = lbl.substring(0, 2) + "..";
-                extendedM = (m[l] << extentionShift) >> extentionShift; // extending the MSB
+                if (this.signed)
+                    extendedM = (m[l] << extentionShift) >> extentionShift; // extending the MSB
+                else
+                    extendedM = m[l];
                 res.append(String.format(wrd, p, lbl, m[l], extendedM, Utils.intToPrintableCharString(m[l]), Assembler.disassemble(c.getInstructionSet(), m[l])));
                 if (i < names.length) {
-                    extendedReg = (vals[i] << extentionShift) >> extentionShift; // extending the MSB
+                    if (this.signed)
+                        extendedReg = (vals[i] << extentionShift) >> extentionShift; // extending the MSB
+                    else
+                        extendedReg = vals[i];
                     res.append(String.format(" | " + reg, names[i], vals[i], extendedReg, Utils.intToPrintableCharString(vals[i])));
                 } else if (i == names.length || i == names.length + 2)
                     res.append(" |-------------------");
