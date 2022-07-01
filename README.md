@@ -1,6 +1,9 @@
 # Simple Computer Simulator
 ![screenshot](./screenshots/gui-dark.png)
-Simulate simple computer architectures
+Legacy version of the Basic Computer Emulator.
+
+Project moved to https://github.com/Naheel-Azawy/bce
+
 ## Download (version 2.03)
 - [DOWNLOAD](https://raw.githubusercontent.com/Naheel-Azawy/Simple-Computer-Simulator/master/scs.jar) the jar
 - [DOWNLOAD](https://raw.githubusercontent.com/Naheel-Azawy/Simple-Computer-Simulator/master/extra/scs.exe) the Windows exe
