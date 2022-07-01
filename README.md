@@ -1,8 +1,9 @@
-# Simple Computer Simulator
-![screenshot](./screenshots/gui-dark.png)
+# BCE-legacy
 Legacy version of the Basic Computer Emulator.
 
 Project moved to https://github.com/Naheel-Azawy/bce
+
+![screenshot](./screenshots/gui-dark.png)
 
 ## Download (version 2.03)
 - [DOWNLOAD](https://raw.githubusercontent.com/Naheel-Azawy/Simple-Computer-Simulator/master/scs.jar) the jar
